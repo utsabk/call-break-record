@@ -191,6 +191,22 @@ body {
 .rank-3 { background: var(--rank-3-bg); border-left-color: var(--rank-3-edge); }
 .rank-4 { background: var(--rank-4-bg); border-left-color: var(--rank-4-edge); }
 
+.final-base-bid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--gold);
+  border-radius: 0.5rem;
+  background: var(--rank-1-bg);
+  color: var(--foreground);
+  padding: 0.75rem 1rem;
+}
+
+.final-base-bid > span:first-child {
+  color: var(--warning);
+}
+
 @media (min-width: 640px) {
   .app-shell { padding: 2.5rem 1.5rem 3.5rem; }
 }

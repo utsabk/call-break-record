@@ -155,7 +155,7 @@ export default function GamePage() {
       if (nextRound) setSelectedRoundNumber(nextRound.roundNumber);
       else {
         const completedGame = await completeGame();
-        window.location.assign(`/game/results/?id=${completedGame.id}`);
+        window.location.assign(`/game/results/?code=${completedGame.gameCode}`);
       }
     } catch (error) {
       setLocalError(error instanceof Error ? error.message : "Could not save round. Try again.");
