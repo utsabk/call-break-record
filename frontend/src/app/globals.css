@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f6f3ea;
+  --foreground: #17271f;
+  --surface: #fcfaf4;
+  --surface-elevated: #ffffff;
+  --surface-tint: #edf3eb;
+  --primary: #155c37;
+  --primary-foreground: #ffffff;
+  --secondary: #e9e4d7;
+  --muted: #68746d;
+  --border: #dcd8cc;
+  --success: #28734c;
+  --warning: #9c6a1d;
+  --danger: #a84239;
+  --danger-surface: #fbefeb;
+  --gold: #9c741d;
+  --primary-border: #0d4a2b;
+  --primary-hover: #104e30;
+  --danger-border: #e7c4bd;
+  --danger-text: #77332f;
+  --tint-border: #cadbc9;
+  --placeholder: #8b958f;
+  --backdrop-glow: #e4ecde;
+  --focus-ring: rgba(21, 92, 55, 0.16);
+  --danger-ring: rgba(168, 66, 57, 0.16);
+  --rank-1-bg: #fbf2d9;
+  --rank-2-bg: #eef1f2;
+  --rank-2-edge: #93a2a8;
+  --rank-3-bg: #f8ece1;
+  --rank-3-edge: #bb8455;
+  --rank-4-bg: #f7f4ec;
+  --rank-4-edge: #cfc8b8;
+  --shadow-sm: 0 1px 2px rgba(22, 39, 30, 0.04), 0 6px 18px rgba(22, 39, 30, 0.04);
+  --shadow-action: 0 2px 0 #0c4025, 0 8px 18px rgba(21, 92, 55, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #122019;
+    --foreground: #f4f1e8;
+    --surface: #1a2c22;
+    --surface-elevated: #21362a;
+    --surface-tint: #263d30;
+    --primary: #4eaa75;
+    --primary-foreground: #102118;
+    --secondary: #2b4033;
+    --muted: #b7c1ba;
+    --border: #3c5144;
+    --success: #71c894;
+    --warning: #d3a451;
+    --danger: #ef9187;
+    --danger-surface: #442a28;
+    --gold: #d5ad54;
+    --primary-border: #2c744a;
+    --primary-hover: #5cb983;
+    --danger-border: #6b3a35;
+    --danger-text: #f6c3bc;
+    --tint-border: #3c5144;
+    --placeholder: #93a09a;
+    --backdrop-glow: #16281e;
+    --focus-ring: rgba(78, 170, 117, 0.26);
+    --danger-ring: rgba(239, 145, 135, 0.24);
+    --rank-1-bg: #3a3320;
+    --rank-2-bg: #2a3236;
+    --rank-2-edge: #8c9aa1;
+    --rank-3-bg: #3a2e25;
+    --rank-3-edge: #b98456;
+    --rank-4-bg: #232f27;
+    --rank-4-edge: #46564b;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.22), 0 8px 22px rgba(0, 0, 0, 0.15);
+    --shadow-action: 0 2px 0 #2c744a, 0 8px 20px rgba(0, 0, 0, 0.2);
+  }
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: radial-gradient(circle at 50% -20%, var(--backdrop-glow) 0, transparent 34rem), var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border px-5 py-3 text-sm font-bold transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-55;
+    letter-spacing: 0;
+  }
+
+  .btn-primary {
+    @apply btn border-[var(--primary-border)] bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary-hover)] focus-visible:ring-[var(--primary)] active:translate-y-px;
+    box-shadow: var(--shadow-action);
+  }
+
+  .btn-secondary {
+    @apply btn border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground)] hover:bg-[var(--surface-tint)] focus-visible:ring-[var(--primary)] active:translate-y-px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-danger {
+    @apply btn border-[var(--danger)] bg-[var(--danger)] text-white hover:opacity-90 focus-visible:ring-[var(--danger)] active:translate-y-px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-small {
+    @apply px-3 py-1 text-sm;
+  }
+
+  .card {
+    @apply rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .input-base {
+    @apply min-h-12 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 text-[var(--foreground)] outline-none transition duration-150 placeholder:text-[var(--placeholder)] focus:border-[var(--primary)] focus:ring-4 focus:ring-[var(--focus-ring)] aria-[invalid=true]:border-[var(--danger)] aria-[invalid=true]:ring-4 aria-[invalid=true]:ring-[var(--danger-ring)];
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-muted {
+    @apply text-[var(--muted)];
+  }
+
+  .divider {
+    @apply border-t border-[var(--border)];
+  }
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 1.25rem 1rem 2rem;
+}
+
+.app-container {
+  width: min(100%, 42rem);
+  margin: 0 auto;
+}
+
+.eyebrow {
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.score-number {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.status-alert {
+  border: 1px solid var(--danger-border);
+  border-radius: 0.5rem;
+  background: var(--danger-surface);
+  color: var(--danger-text);
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.surface-tint {
+  border: 1px solid var(--tint-border);
+  border-radius: 0.5rem;
+  background: var(--surface-tint);
+}
+
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  border-left: 3px solid transparent;
+  padding: 0.625rem 0.75rem;
+}
+
+.rank-1 { background: var(--rank-1-bg); border-left-color: var(--gold); }
+.rank-2 { background: var(--rank-2-bg); border-left-color: var(--rank-2-edge); }
+.rank-3 { background: var(--rank-3-bg); border-left-color: var(--rank-3-edge); }
+.rank-4 { background: var(--rank-4-bg); border-left-color: var(--rank-4-edge); }
+
+@media (min-width: 640px) {
+  .app-shell { padding: 2.5rem 1.5rem 3.5rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .btn { transition-property: background-color, border-color, color, transform, box-shadow; }
+  .card, .surface-tint { animation: surface-enter 180ms ease-out both; }
+  @keyframes surface-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+}
+
+/* Mobile-first responsive breakpoints */
+@media (min-width: 640px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    font-size: 18px;
+  }
+}

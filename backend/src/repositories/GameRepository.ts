@@ -1,0 +1,361 @@
+/**
+ * DynamoDB Game Repository
+ * Handles persistence of games in DynamoDB
+ */
+
+import { DynamoDB } from "aws-sdk";
+import { Game, GameSession, GameStatus, PlayerRoundSubmission } from "@call-break/shared";
+
+type StoredGame = Game & { hostToken?: string };
+export type StoredSession = GameSession;
+
+const dynamodb = new DynamoDB.DocumentClient({
+  region: process.env.AWS_REGION || "us-east-1",
+});
+
+const TABLE_NAME = process.env.DYNAMODB_TABLE || "CallBreakGames";
+
+export interface IGameRepository {
+  createGame(game: StoredGame): Promise<void>;
+  getGame(gameId: string): Promise<Game | null>;
+  updateGame(game: Game): Promise<void>;
+  deleteGame(gameId: string): Promise<void>;
+  listGames(limit?: number): Promise<Game[]>;
+  listGamesByStatus(status: GameStatus, limit?: number): Promise<Game[]>;
+  getGameByCode(gameCode: string): Promise<Game | null>;
+  getHostToken(gameId: string): Promise<string | null>;
+}
+
+export class DynamoDBGameRepository implements IGameRepository {
+  async createGame(game: StoredGame): Promise<void> {
+    try {
+      await dynamodb
+        .put({
+          TableName: TABLE_NAME,
+          Item: {
+            PK: `GAME#${game.id}`,
+            SK: `METADATA#${game.id}`,
+            entityType: "GAME",
+            gameId: game.id,
+            gameCode: game.gameCode,
+            hostToken: game.hostToken,
+            status: game.status,
+            createdAt: game.createdAt.toISOString(),
+            updatedAt: game.updatedAt.toISOString(),
+            players: game.players,
+            rules: game.rules,
+            rounds: game.rounds,
+          },
+        })
+        .promise();
+    } catch (error) {
+      console.error("Error creating game:", error);
+      throw error;
+    }
+  }
+
+  async getGame(gameId: string): Promise<Game | null> {
+    try {
+      const result = await dynamodb
+        .get({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `GAME#${gameId}`,
+            SK: `METADATA#${gameId}`,
+          },
+        })
+        .promise();
+
+      if (!result.Item) {
+        return null;
+      }
+
+      const item = result.Item as any;
+      return {
+        id: item.gameId,
+        gameCode: item.gameCode,
+        players: item.players,
+        rules: item.rules,
+        rounds: item.rounds,
+        status: item.status,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      };
+    } catch (error) {
+      console.error("Error getting game:", error);
+      throw error;
+    }
+  }
+
+  async getGameByCode(gameCode: string): Promise<Game | null> {
+    const result = await dynamodb.query({
+      TableName: TABLE_NAME,
+      IndexName: "GameCodeIndex",
+      KeyConditionExpression: "gameCode = :gameCode",
+      ExpressionAttributeValues: { ":gameCode": gameCode },
+      Limit: 1,
+    }).promise();
+    const item = result.Items?.[0];
+    if (!item) return null;
+    return {
+      id: item.gameId, gameCode: item.gameCode, players: item.players, rules: item.rules,
+      rounds: item.rounds, status: item.status, createdAt: new Date(item.createdAt), updatedAt: new Date(item.updatedAt),
+    };
+  }
+
+  async getHostToken(gameId: string): Promise<string | null> {
+    const result = await dynamodb.get({ TableName: TABLE_NAME, Key: { PK: `GAME#${gameId}`, SK: `METADATA#${gameId}` }, ProjectionExpression: "hostToken" }).promise();
+    return typeof result.Item?.hostToken === "string" ? result.Item.hostToken : null;
+  }
+
+  async updateGame(game: Game): Promise<void> {
+    try {
+      await dynamodb
+        .update({
+          TableName: TABLE_NAME,
+          Key: {
+            PK: `GAME#${game.id}`,
+            SK: `METADATA#${game.id}`,
+          },
+          UpdateExpression:
+            "SET #status = :status, #updatedAt = :updatedAt, #rounds = :rounds",
+          ExpressionAttributeNames: {
+            "#status": "status",
+            "#updatedAt": "updatedAt",
+            "#rounds": "rounds",
+          },
+          ExpressionAttributeValues: {
+            ":status": game.status,
+            ":updatedAt": game.updatedAt.toISOString(),
+            ":rounds": game.rounds,
+          },
+        })
+        .promise();
+    } catch (error) {
+      console.error("Error updating game:", error);
+      throw error;
+    }
+  }
+
+  async deleteGame(gameId: string): Promise<void> {
+    await dynamodb.delete({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `GAME#${gameId}`,
+        SK: `METADATA#${gameId}`,
+      },
+    }).promise();
+  }
+
+  /** Returns false when another device already holds the seat. */
+  async claimSeat(gameId: string, playerId: string, sessionId: string): Promise<boolean> {
+    try {
+      await dynamodb.put({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: `GAME#${gameId}`,
+          SK: `SEAT#${playerId}`,
+          gameId,
+          playerId,
+          sessionId,
+          claimedAt: new Date().toISOString(),
+        },
+        ConditionExpression: "attribute_not_exists(PK) OR sessionId = :sessionId",
+        ExpressionAttributeValues: { ":sessionId": sessionId },
+      }).promise();
+      return true;
+    } catch (error) {
+      if ((error as { code?: string }).code === "ConditionalCheckFailedException") return false;
+      throw error;
+    }
+  }
+
+  async listClaimedPlayerIds(gameId: string): Promise<string[]> {
+    const result = await dynamodb.query({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":sk": "SEAT#" },
+    }).promise();
+    return (result.Items || []).map((item) => item.playerId as string);
+  }
+
+  async releaseSeat(gameId: string, playerId: string): Promise<void> {
+    await dynamodb.delete({
+      TableName: TABLE_NAME,
+      Key: { PK: `GAME#${gameId}`, SK: `SEAT#${playerId}` },
+    }).promise();
+  }
+
+  async putSession(session: StoredSession): Promise<void> {
+    await dynamodb.put({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `GAME#${session.gameId}`,
+        SK: `SESSION#${session.sessionId}`,
+        ...session,
+        createdAt: new Date().toISOString(),
+      },
+    }).promise();
+  }
+
+  async getSession(gameId: string, sessionId: string): Promise<StoredSession | null> {
+    const result = await dynamodb.get({
+      TableName: TABLE_NAME,
+      Key: { PK: `GAME#${gameId}`, SK: `SESSION#${sessionId}` },
+    }).promise();
+    if (!result.Item) return null;
+    return {
+      sessionId: result.Item.sessionId,
+      gameId: result.Item.gameId,
+      role: result.Item.role,
+      playerId: result.Item.playerId,
+    };
+  }
+
+  /** Each submission is its own item so simultaneous players cannot overwrite each other. */
+  async putSubmission(gameId: string, roundNumber: number, submission: PlayerRoundSubmission): Promise<void> {
+    await dynamodb.put({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `GAME#${gameId}`,
+        SK: `SUB#${roundNumber}#${submission.playerId}`,
+        gameId,
+        roundNumber,
+        playerId: submission.playerId,
+        bid: submission.bid,
+        tricksWon: submission.tricksWon,
+        submittedAt: submission.submittedAt.toISOString(),
+      },
+    }).promise();
+  }
+
+  async listSubmissions(gameId: string, roundNumber: number): Promise<PlayerRoundSubmission[]> {
+    const result = await dynamodb.query({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":sk": `SUB#${roundNumber}#` },
+    }).promise();
+    return (result.Items || []).map((item) => ({
+      playerId: item.playerId as string,
+      bid: item.bid as number,
+      tricksWon: item.tricksWon as number,
+      submittedAt: new Date(item.submittedAt as string),
+    }));
+  }
+
+  async listAllSubmissions(gameId: string): Promise<Map<number, PlayerRoundSubmission[]>> {
+    const result = await dynamodb.query({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":sk": "SUB#" },
+    }).promise();
+
+    const byRound = new Map<number, PlayerRoundSubmission[]>();
+    for (const item of result.Items || []) {
+      const roundNumber = item.roundNumber as number;
+      const submissions = byRound.get(roundNumber) || [];
+      submissions.push({
+        playerId: item.playerId as string,
+        bid: item.bid as number,
+        tricksWon: item.tricksWon as number,
+        submittedAt: new Date(item.submittedAt as string),
+      });
+      byRound.set(roundNumber, submissions);
+    }
+    return byRound;
+  }
+
+  /** Conditional so concurrent reveal attempts produce exactly one state transition. */
+  async revealRound(game: Game, roundNumber: number): Promise<boolean> {
+    try {
+      await dynamodb.update({
+        TableName: TABLE_NAME,
+        Key: { PK: `GAME#${game.id}`, SK: `METADATA#${game.id}` },
+        UpdateExpression: "SET #rounds = :rounds, #updatedAt = :updatedAt ADD revealedRounds :round",
+        ConditionExpression: "attribute_not_exists(revealedRounds) OR NOT contains(revealedRounds, :roundValue)",
+        ExpressionAttributeNames: { "#rounds": "rounds", "#updatedAt": "updatedAt" },
+        ExpressionAttributeValues: {
+          ":rounds": game.rounds,
+          ":updatedAt": game.updatedAt.toISOString(),
+          ":round": dynamodb.createSet([String(roundNumber)]),
+          ":roundValue": String(roundNumber),
+        },
+      }).promise();
+      return true;
+    } catch (error) {
+      if ((error as { code?: string }).code === "ConditionalCheckFailedException") return false;
+      throw error;
+    }
+  }
+
+
+  async listGames(limit: number = 100): Promise<Game[]> {
+    try {
+      const result = await dynamodb
+        .query({
+          TableName: TABLE_NAME,
+          IndexName: "AllGamesIndex",
+          KeyConditionExpression: "entityType = :entityType",
+          ExpressionAttributeValues: {
+            ":entityType": "GAME",
+          },
+          Limit: limit,
+          ScanIndexForward: false, // Most recent first
+        })
+        .promise();
+
+      return (result.Items || []).map((item: any) => ({
+        id: item.gameId,
+        gameCode: item.gameCode,
+        players: item.players,
+        rules: item.rules,
+        rounds: item.rounds,
+        status: item.status,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      }));
+    } catch (error) {
+      console.error("Error listing games:", error);
+      return [];
+    }
+  }
+
+  async listGamesByStatus(
+    status: GameStatus,
+    limit: number = 100
+  ): Promise<Game[]> {
+    try {
+      const result = await dynamodb
+        .query({
+          TableName: TABLE_NAME,
+          IndexName: "StatusIndex",
+          KeyConditionExpression: "#status = :status",
+          ExpressionAttributeNames: {
+            "#status": "status",
+          },
+          ExpressionAttributeValues: {
+            ":status": status,
+          },
+          Limit: limit,
+          ScanIndexForward: false,
+        })
+        .promise();
+
+      return (result.Items || []).map((item: any) => ({
+        id: item.gameId,
+        gameCode: item.gameCode,
+        players: item.players,
+        rules: item.rules,
+        rounds: item.rounds,
+        status: item.status,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      }));
+    } catch (error) {
+      console.error("Error listing games by status:", error);
+      return [];
+    }
+  }
+}
+
+export const gameRepository = new DynamoDBGameRepository();

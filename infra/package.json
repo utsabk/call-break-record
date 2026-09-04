@@ -1,0 +1,24 @@
+{
+  "name": "@call-break/infra",
+  "version": "1.0.0",
+  "description": "AWS CDK Infrastructure for Call Break Scorekeeper",
+  "private": true,
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "cdk synth",
+    "deploy": "cdk deploy",
+    "destroy": "cdk destroy"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.110.1",
+    "constructs": "^10.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.10",
+    "aws-cdk": "^2.110.1",
+    "dotenv": "^17.4.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.3.3"
+  }
+}

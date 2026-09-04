@@ -1,0 +1,28 @@
+{
+  "name": "call-break",
+  "version": "1.0.0",
+  "description": "Call Break Scorekeeper",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "infra",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@call-break/frontend",
+    "build": "npm run build --workspace=@call-break/shared && npm run build --workspace=@call-break/backend && npm run build --workspace=@call-break/frontend && npm run build --workspace=@call-break/infra",
+    "build:shared": "npm run build --workspace=@call-break/shared",
+    "test": "npm run build:shared && npm test --workspaces --if-present",
+    "test:all": "npm run test",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@typescript-eslint/eslint-plugin": "^6.13.2",
+    "@typescript-eslint/parser": "^6.13.2",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0"
+  }
+}
