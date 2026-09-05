@@ -1,11 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Check, Copy, Lock, Share2, Spade } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Copy, Lock, Share2, Spade, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { calculateRankings, calculateRoundScore, PlayerRound, PunishmentReason } from "@call-break/shared";
 import { useGameStore } from "@/lib/hooks/useGameStore";
-import { getHostToken } from "@/lib/repositories/ApiGameRepository";
+import { forgetGameCode, getHostToken } from "@/lib/repositories/ApiGameRepository";
 import { useGamePolling } from "@/lib/hooks/useGamePolling";
 
 type RoundPhase = "CALLS" | "TRICKS" | "COMPLETED";
@@ -35,6 +35,7 @@ export default function GamePage() {
   const markPunished = useGameStore((state) => state.markPunished);
   const removePunishment = useGameStore((state) => state.removePunishment);
   const completeGame = useGameStore((state) => state.completeGame);
+  const deleteGame = useGameStore((state) => state.deleteGame);
   const getGameTotals = useGameStore((state) => state.getGameTotals);
   const [isReady, setIsReady] = useState(false);
   const [selectedRoundNumber, setSelectedRoundNumber] = useState<number | null>(null);
@@ -45,6 +46,9 @@ export default function GamePage() {
   const [punishmentReason, setPunishmentReason] = useState(PunishmentReason.WRONG_CARD);
   const [isHost, setIsHost] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [isAbandoning, setIsAbandoning] = useState(false);
+  const [showAbandonDialog, setShowAbandonDialog] = useState(false);
+  const [abandonError, setAbandonError] = useState<string | null>(null);
 
   const selectedRound = currentGame?.rounds.find((round) => round.roundNumber === selectedRoundNumber);
   // Rounds are created upfront, so the round being scored is the first one still active.
@@ -181,6 +185,20 @@ export default function GamePage() {
     }
   };
 
+  const abandonGame = async () => {
+    if (!currentGame) return;
+    setAbandonError(null);
+    setIsAbandoning(true);
+    try {
+      await deleteGame(currentGame.id);
+      forgetGameCode(currentGame.gameCode);
+      window.location.assign("/");
+    } catch (error) {
+      setAbandonError(error instanceof Error ? error.message : "Could not abandon the game. Try again.");
+      setIsAbandoning(false);
+    }
+  };
+
   if (!isReady || (isLoading && !currentGame)) return <main className="min-h-screen px-4 py-10"><p className="mx-auto max-w-xl text-[var(--muted)]">Loading game...</p></main>;
   if (!currentGame || !selectedRound) return <main className="min-h-screen px-4 py-10"><div className="mx-auto max-w-xl"><p role="alert" className="text-[var(--danger)]">{localError || "Game not found."}</p><Link href="/" className="btn-secondary mt-5"><ArrowLeft size={18} /> Home</Link></div></main>;
 
@@ -192,5 +210,9 @@ export default function GamePage() {
 
     {phase === "COMPLETED" && <section className="mt-7"><div className="card space-y-4">{currentGame.players.map((player) => { const playerRound = selectedRound.players.find((entry) => entry.playerId === player.id); if (!playerRound) return null; return <div key={player.id} className="border-b border-[var(--border)] pb-4 last:border-0 last:pb-0"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold">{player.name}</p><p className="mt-1 text-sm text-[var(--muted)]">{playerRound.bid} to {playerRound.tricksWon}</p>{playerRound.punished && <p className="mt-1 text-sm font-semibold text-[var(--danger)]">Disqualified</p>}</div><p className={playerRound.scoreTenths < 0 ? "font-bold text-[var(--danger)]" : "font-bold text-[var(--success)]"}>{formatScore(playerRound.scoreTenths)}</p></div>{playerRound.punished ? <button className="mt-2 text-sm text-[var(--primary)] underline" type="button" disabled={isLoading} onClick={() => clearPunishment(player.id)}>Remove penalty</button> : <button className="mt-2 text-sm text-[var(--primary)] underline" type="button" disabled={isLoading} onClick={() => setPunishmentPlayerId(player.id)}>Mark punished</button>}{punishmentPlayerId === player.id && <div className="mt-3 flex gap-2"><select aria-label="Punishment reason" className="input-base min-h-10" value={punishmentReason} onChange={(event) => setPunishmentReason(event.target.value as PunishmentReason)}>{Object.values(PunishmentReason).map((reason) => <option key={reason} value={reason}>{reason.replace("_", " ")}</option>)}</select><button className="btn-primary min-h-10 px-3 py-2 text-sm" type="button" disabled={isLoading} onClick={() => applyPunishment(player.id)}>Save</button></div>}</div>; })}</div>{localError && <p role="alert" className="mt-4 text-sm text-[var(--danger)]">{localError}</p>}</section>}
 
-    <nav className="mt-8 border-t border-[var(--border)] pt-5" aria-label="Round history"><p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Rounds</p><div className="mt-3 flex flex-wrap gap-2">{currentGame.rounds.filter((round) => round.status === "COMPLETED").map((round) => <button key={round.roundNumber} className="btn-secondary min-h-10 px-3 py-2 text-sm" type="button" onClick={() => setSelectedRoundNumber(round.roundNumber)}>Round {round.roundNumber}</button>)}</div></nav></div></main>;
+    <nav className="mt-8 border-t border-[var(--border)] pt-5" aria-label="Round history"><p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Rounds</p><div className="mt-3 flex flex-wrap gap-2">{currentGame.rounds.filter((round) => round.status === "COMPLETED").map((round) => <button key={round.roundNumber} className="btn-secondary min-h-10 px-3 py-2 text-sm" type="button" onClick={() => setSelectedRoundNumber(round.roundNumber)}>Round {round.roundNumber}</button>)}</div></nav>
+
+    {isHost && <section className="mt-8 border-t border-[var(--border)] pt-5"><p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Abandon game</p><p className="mt-2 text-sm leading-6 text-[var(--muted)]">Stop scoring and discard this game. Every round recorded so far is deleted and followers lose access to the game code.</p><button className="btn mt-4 border-[var(--danger-border)] bg-[var(--danger-surface)] text-[var(--danger-text)] hover:bg-[var(--danger)] hover:text-white focus-visible:ring-[var(--danger)]" type="button" onClick={() => { setAbandonError(null); setShowAbandonDialog(true); }}><Trash2 size={18} /> Abandon game</button></section>}
+
+    {showAbandonDialog && <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/30 px-4 pb-4 sm:items-center" role="presentation"><div className="card w-full max-w-sm" role="dialog" aria-modal="true" aria-labelledby="abandon-game-title"><h2 id="abandon-game-title" className="font-display text-2xl font-bold">Abandon this game?</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{currentGame.rounds.filter((round) => round.status === "COMPLETED").length} of {currentGame.rules.rounds} rounds have been scored. Abandoning deletes them permanently and cannot be undone.</p>{abandonError && <p role="alert" className="status-alert mt-4">{abandonError}</p>}<div className="mt-6 flex justify-end gap-3"><button className="btn-secondary" type="button" disabled={isAbandoning} onClick={() => setShowAbandonDialog(false)}>Keep scoring</button><button className="btn-danger" type="button" disabled={isAbandoning} onClick={abandonGame}>{isAbandoning ? "Abandoning..." : "Abandon game"}</button></div></div></div>}</div></main>;
 }

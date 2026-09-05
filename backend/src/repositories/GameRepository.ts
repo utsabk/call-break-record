@@ -149,14 +149,35 @@ export class DynamoDBGameRepository implements IGameRepository {
     }
   }
 
+  /** Removes the game outright: metadata plus every seat, session and submission it owns. */
   async deleteGame(gameId: string): Promise<void> {
-    await dynamodb.delete({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `GAME#${gameId}`,
-        SK: `METADATA#${gameId}`,
-      },
-    }).promise();
+    const keys: DynamoDB.DocumentClient.Key[] = [];
+    let startKey: DynamoDB.DocumentClient.Key | undefined;
+
+    do {
+      const page = await dynamodb.query({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: "PK = :pk",
+        ExpressionAttributeValues: { ":pk": `GAME#${gameId}` },
+        ProjectionExpression: "PK, SK",
+        ExclusiveStartKey: startKey,
+      }).promise();
+      for (const item of page.Items || []) keys.push({ PK: item.PK, SK: item.SK });
+      startKey = page.LastEvaluatedKey;
+    } while (startKey);
+
+    if (keys.length === 0) return;
+
+    for (let index = 0; index < keys.length; index += 25) {
+      let unprocessed: DynamoDB.DocumentClient.BatchWriteItemRequestMap = {
+        [TABLE_NAME]: keys.slice(index, index + 25).map((Key) => ({ DeleteRequest: { Key } })),
+      };
+      // BatchWrite can decline items under throttling, so retry until the partition is clear.
+      while (Object.keys(unprocessed).length > 0) {
+        const result = await dynamodb.batchWrite({ RequestItems: unprocessed }).promise();
+        unprocessed = result.UnprocessedItems || {};
+      }
+    }
   }
 
   /** Returns false when another device already holds the seat. */
