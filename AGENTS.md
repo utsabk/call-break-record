@@ -14,7 +14,7 @@ https://callbreak.kharelutsab.com.
 ```bash
 npm install
 npm run build:shared     # REQUIRED before backend/frontend type-check
-npm test                 # 67 tests in shared/
+npm test                 # 73 tests in shared/
 npm run build            # all workspaces, correct dependency order
 npm run build --workspace=@call-break/frontend    # static export to frontend/out
 cd infra && npx cdk synth                          # validate infra without deploying
@@ -34,24 +34,30 @@ These are load-bearing. Breaking one causes subtle, hard-to-trace bugs.
 3. **The backend is authoritative.** It recalculates scores from stored bid/tricks. Never trust
    a score from a client.
 4. **Derived values are never stored as truth.** Totals, rankings and settlement are always
-   recomputed from round data.
-5. **Redaction happens on the server.** `createGameView()` strips other players' bids and tricks
-   before reveal. Never send private values and hide them in the UI.
-6. **The frontend must stay statically exportable.** `output: "export"`. No server components
+   recomputed from round data. Round phase is likewise derived from stored entries — never keep
+   it in component state or `localStorage`.
+5. **The server decides what each role sees.** `createGameView()` builds the payload. Entered
+   calls and tricks are shared with everyone by design; unentered values are simply absent.
+   Never send a value you intend to hide in the UI.
+6. **A seat comes from the session, never the request body.** Only the host may pass a
+   `playerId` or set `punished`.
+7. **The frontend must stay statically exportable.** `output: "export"`. No server components
    doing I/O, no API routes, no server actions, no middleware.
-7. **All HTTP goes through `ApiGameRepository`.** Components never call `fetch` directly.
+8. **All HTTP goes through `ApiGameRepository`.** Components never call `fetch` directly.
 
 ## Where things live
 
 | Task                              | File                                                    |
 |-----------------------------------|---------------------------------------------------------|
 | Change scoring or settlement math | `shared/src/scoring.ts`, `shared/src/settlement.ts`      |
-| Change what a role may see        | `shared/src/multiplayer.ts` (`createGameView`)           |
+| Change round phase or visibility  | `shared/src/multiplayer.ts` (`getRoundPhase`, `createGameView`) |
+| Change who may enter what         | `backend/src/services/GameService.ts` (`setRoundEntry`)  |
 | Add/modify a business rule        | `backend/src/services/GameService.ts`                    |
 | Add an API endpoint               | `backend/src/handlers/*.ts` **and** wire it in `infra/lib/CallBreakStack.ts` |
 | Change persistence                | `backend/src/repositories/GameRepository.ts`             |
 | Change AWS resources              | `infra/lib/CallBreakStack.ts`                            |
 | Design tokens / theme             | `frontend/src/app/globals.css`                           |
+| The scoring screen (all roles)    | `frontend/src/app/game/live/page.tsx`                    |
 | Client API calls, tokens, session | `frontend/src/lib/repositories/ApiGameRepository.ts`     |
 
 ## Domain rules (do not change without being asked)
@@ -63,7 +69,16 @@ These are load-bearing. Breaking one causes subtle, hard-to-trace bugs.
   if the winner finished on **20.0+**. The two stack.
 - Settlement must always net to zero — assert with `verifySettlementBalance`.
 - Ties are marked `"TIE"`. Never invent a winner or settle an unresolved tie.
+## How a round is filled
 
+`BIDDING` → `TRICKS` → `COMPLETED`, derived by `getRoundPhase` from stored entries.
+
+- Bidding ends when all four seats have a call, whoever entered it.
+- A player enters only their own value, and only once — their call stands.
+- The host may enter or correct any value until the round is scored.
+- The host scores the round; the backend recomputes from stored entries and enforces 13 tricks.
+- `/game/live` serves host, player and watcher from the same state. Do not add a second scoring
+  screen — that split is exactly what caused host and players to drift out of sync before.
 ## Traps discovered the hard way
 
 Each of these cost real debugging time. Check them before re-diagnosing.
@@ -72,6 +87,18 @@ Each of these cost real debugging time. Check them before re-diagnosing.
   `CallBreakStack.ts`. An unwired path returns `403 Missing Authentication Token`, and because
   API Gateway's own errors historically lacked CORS headers, the browser reported it as a CORS
   failure. `DEFAULT_4XX`/`DEFAULT_5XX` gateway responses now carry CORS headers.
+- **A direct load of a nested route returning the home page is not a routing bug.** S3 behind an
+  origin access identity serves no directory index, so `/game/results/` 404s and the
+  404 → `/index.html` mapping renders home with status 200. A CloudFront viewer-request function
+  rewrites directory paths to `index.html`. Clicking a link hides this, because that is
+  client-side routing with no origin request.
+- **Never read a whole game from a global secondary index.** The index lags writes, so a
+  finished game comes back looking unfinished for a moment. Resolve the code to an id via
+  `GameCodeIndex`, then read the base table with `ConsistentRead`.
+- **Round phase must not live in the browser.** It was once a `localStorage` draft on the host
+  screen, which is why player entries never reached the host.
+- **Deleting a game must clear the whole partition.** Seats, sessions and entries are separate
+  items and will outlive the metadata row otherwise.
 - **"CORS error" in the browser is usually not CORS.** Reproduce with `curl -X OPTIONS` and a
   real `Origin` header first. If the returned `access-control-allow-origin` does not echo your
   origin, the origin is missing from `allowOrigins`.
@@ -90,6 +117,8 @@ Each of these cost real debugging time. Check them before re-diagnosing.
 - **`shared` must be built first.** Otherwise `Cannot find module '@call-break/shared'`.
 - **`ENVIRONMENT=prod` sets `RETAIN`** on DynamoDB and S3. Those resources survive
   `cdk destroy`.
+- **Games self-destruct after 24 hours** via table TTL. A game missing the next day is expected,
+  not a bug.
 
 ## Code style
 
@@ -102,7 +131,7 @@ Each of these cost real debugging time. Check them before re-diagnosing.
 
 ## Testing
 
-`shared/src/__tests__/` is the meaningful suite (67 tests): scoring, settlement, ranking,
-schemas, multiplayer redaction. Any change to a domain rule needs a test. Backend handlers and
+`shared/src/__tests__/` is the meaningful suite (73 tests): scoring, settlement, ranking,
+schemas, round phase and game view. Any change to a domain rule needs a test. Backend handlers and
 frontend components currently have no automated coverage — verify those changes by building and,
 where useful, by exercising the deployed API with `curl`.

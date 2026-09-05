@@ -4,7 +4,7 @@
  */
 
 import { DynamoDB } from "aws-sdk";
-import { Game, GameSession, GameStatus, PlayerRoundSubmission } from "@call-break/shared";
+import { EntrySource, Game, GameSession, GameStatus, RoundEntry } from "@call-break/shared";
 
 type StoredGame = Game & { hostToken?: string };
 export type StoredSession = GameSession;
@@ -19,6 +19,18 @@ const GAME_RETENTION_HOURS = 24;
 /** DynamoDB TTL expects epoch seconds; games are purged a day after they are created. */
 function expiresAt(from: Date = new Date()): number {
   return Math.floor(from.getTime() / 1000) + GAME_RETENTION_HOURS * 60 * 60;
+}
+
+function toRoundEntry(item: DynamoDB.DocumentClient.AttributeMap): RoundEntry {
+  return {
+    playerId: item.playerId as string,
+    ...(typeof item.bid === "number" ? { bid: item.bid } : {}),
+    ...(typeof item.tricksWon === "number" ? { tricksWon: item.tricksWon } : {}),
+    ...(typeof item.punished === "boolean" ? { punished: item.punished } : {}),
+    ...(item.bidSource ? { bidSource: item.bidSource as EntrySource } : {}),
+    ...(item.tricksSource ? { tricksSource: item.tricksSource as EntrySource } : {}),
+    ...(item.updatedAt ? { updatedAt: new Date(item.updatedAt as string) } : {}),
+  };
 }
 
 export interface IGameRepository {
@@ -247,56 +259,77 @@ export class DynamoDBGameRepository implements IGameRepository {
     };
   }
 
-  /** Each submission is its own item so simultaneous players cannot overwrite each other. */
-  async putSubmission(gameId: string, roundNumber: number, submission: PlayerRoundSubmission): Promise<void> {
-    await dynamodb.put({
+  /**
+   * Each player's entry is its own item, written field by field, so a bid and a trick
+   * arriving at the same moment from different devices cannot overwrite each other.
+   */
+  async saveEntry(
+    gameId: string,
+    roundNumber: number,
+    playerId: string,
+    patch: { bid?: number; tricksWon?: number; punished?: boolean; source: EntrySource }
+  ): Promise<void> {
+    const names: Record<string, string> = { "#updatedAt": "updatedAt" };
+    const values: Record<string, unknown> = {
+      ":updatedAt": new Date().toISOString(),
+      ":gameId": gameId,
+      ":roundNumber": roundNumber,
+      ":playerId": playerId,
+      ":expiresAt": expiresAt(),
+    };
+    const assignments = ["#updatedAt = :updatedAt", "gameId = :gameId", "roundNumber = :roundNumber", "playerId = :playerId", "expiresAt = :expiresAt"];
+
+    if (patch.bid !== undefined) {
+      names["#bid"] = "bid";
+      values[":bid"] = patch.bid;
+      values[":bidSource"] = patch.source;
+      assignments.push("#bid = :bid", "bidSource = :bidSource");
+    }
+    if (patch.tricksWon !== undefined) {
+      names["#tricksWon"] = "tricksWon";
+      values[":tricksWon"] = patch.tricksWon;
+      values[":tricksSource"] = patch.source;
+      assignments.push("#tricksWon = :tricksWon", "tricksSource = :tricksSource");
+    }
+    if (patch.punished !== undefined) {
+      names["#punished"] = "punished";
+      values[":punished"] = patch.punished;
+      assignments.push("#punished = :punished");
+    }
+
+    await dynamodb.update({
       TableName: TABLE_NAME,
-      Item: {
-        PK: `GAME#${gameId}`,
-        SK: `SUB#${roundNumber}#${submission.playerId}`,
-        gameId,
-        roundNumber,
-        playerId: submission.playerId,
-        bid: submission.bid,
-        tricksWon: submission.tricksWon,
-        submittedAt: submission.submittedAt.toISOString(),
-        expiresAt: expiresAt(),
-      },
+      Key: { PK: `GAME#${gameId}`, SK: `SUB#${roundNumber}#${playerId}` },
+      UpdateExpression: `SET ${assignments.join(", ")}`,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
     }).promise();
   }
 
-  async listSubmissions(gameId: string, roundNumber: number): Promise<PlayerRoundSubmission[]> {
+  async listEntries(gameId: string, roundNumber: number): Promise<RoundEntry[]> {
     const result = await dynamodb.query({
       TableName: TABLE_NAME,
       KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
       ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":sk": `SUB#${roundNumber}#` },
+      ConsistentRead: true,
     }).promise();
-    return (result.Items || []).map((item) => ({
-      playerId: item.playerId as string,
-      bid: item.bid as number,
-      tricksWon: item.tricksWon as number,
-      submittedAt: new Date(item.submittedAt as string),
-    }));
+    return (result.Items || []).map(toRoundEntry);
   }
 
-  async listAllSubmissions(gameId: string): Promise<Map<number, PlayerRoundSubmission[]>> {
+  async listAllEntries(gameId: string): Promise<Map<number, RoundEntry[]>> {
     const result = await dynamodb.query({
       TableName: TABLE_NAME,
       KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
       ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":sk": "SUB#" },
+      ConsistentRead: true,
     }).promise();
 
-    const byRound = new Map<number, PlayerRoundSubmission[]>();
+    const byRound = new Map<number, RoundEntry[]>();
     for (const item of result.Items || []) {
       const roundNumber = item.roundNumber as number;
-      const submissions = byRound.get(roundNumber) || [];
-      submissions.push({
-        playerId: item.playerId as string,
-        bid: item.bid as number,
-        tricksWon: item.tricksWon as number,
-        submittedAt: new Date(item.submittedAt as string),
-      });
-      byRound.set(roundNumber, submissions);
+      const entries = byRound.get(roundNumber) || [];
+      entries.push(toRoundEntry(item));
+      byRound.set(roundNumber, entries);
     }
     return byRound;
   }

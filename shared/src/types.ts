@@ -40,8 +40,8 @@ export interface Round {
   roundNumber: number; // 1-5
   players: PlayerRound[];
   status: "ACTIVE" | "COMPLETED";
-  /** Independent per-player entries, held privately until the round is revealed. */
-  submissions?: import("./multiplayer").PlayerRoundSubmission[];
+  /** Per-player working values, filled in bid-then-tricks order before the round is scored. */
+  entries?: import("./multiplayer").RoundEntry[];
   revealed?: boolean;
   completedAt?: Date;
 }

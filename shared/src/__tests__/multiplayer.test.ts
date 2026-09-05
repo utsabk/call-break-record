@@ -3,10 +3,12 @@ import {
   GameViewerRole,
   Game,
   Player,
-  canRevealRound,
+  canCompleteRound,
   createGameView,
+  getRoundPhase,
   getSubmissionStates,
-  hasAllSubmissions,
+  hasAllBids,
+  hasAllTricks,
 } from "../index";
 
 const players: Player[] = [
@@ -35,9 +37,9 @@ function buildGame(overrides: Partial<Game> = {}): Game {
         players: [],
         status: "ACTIVE",
         revealed: false,
-        submissions: [
-          { playerId: "p1", bid: 4, tricksWon: 5, submittedAt: new Date() },
-          { playerId: "p2", bid: 5, tricksWon: 4, submittedAt: new Date() },
+        entries: [
+          { playerId: "p1", bid: 4, bidSource: "PLAYER" },
+          { playerId: "p2", bid: 5, bidSource: "PLAYER" },
         ],
       },
     ],
@@ -48,8 +50,8 @@ function buildGame(overrides: Partial<Game> = {}): Game {
   };
 }
 
-describe("submission state", () => {
-  it("reports pending players before they submit", () => {
+describe("round phase", () => {
+  it("reports who still owes a bid while bidding", () => {
     const states = getSubmissionStates(buildGame().rounds[0], players);
     expect(states).toEqual([
       { playerId: "p1", status: "SUBMITTED" },
@@ -59,65 +61,117 @@ describe("submission state", () => {
     ]);
   });
 
-  it("treats a round with no submissions as fully pending", () => {
+  it("treats a round with no entries as fully pending", () => {
     const round = { roundNumber: 1, players: [], status: "ACTIVE" as const };
-    expect(hasAllSubmissions(round, players)).toBe(false);
+    expect(hasAllBids(round, players)).toBe(false);
+    expect(getRoundPhase(round, players)).toBe("BIDDING");
     expect(getSubmissionStates(round, players).every((s) => s.status === "PENDING")).toBe(true);
   });
 
-  it("only allows reveal once every player has submitted", () => {
+  it("stays in bidding until every seat has a bid", () => {
     const game = buildGame();
-    expect(canRevealRound(game.rounds[0], players)).toBe(false);
+    expect(getRoundPhase(game.rounds[0], players)).toBe("BIDDING");
 
-    game.rounds[0].submissions!.push(
-      { playerId: "p3", bid: 3, tricksWon: 2, submittedAt: new Date() },
-      { playerId: "p4", bid: 2, tricksWon: 2, submittedAt: new Date() }
-    );
-    expect(canRevealRound(game.rounds[0], players)).toBe(true);
+    game.rounds[0].entries!.push({ playerId: "p3", bid: 3 }, { playerId: "p4", bid: 2 });
+    expect(hasAllBids(game.rounds[0], players)).toBe(true);
+    expect(getRoundPhase(game.rounds[0], players)).toBe("TRICKS");
   });
 
-  it("does not allow revealing the same round twice", () => {
+  it("advances to tricks on a host-entered bid just as readily as a player's", () => {
     const game = buildGame();
-    game.rounds[0].submissions!.push(
-      { playerId: "p3", bid: 3, tricksWon: 2, submittedAt: new Date() },
-      { playerId: "p4", bid: 2, tricksWon: 2, submittedAt: new Date() }
+    game.rounds[0].entries!.push(
+      { playerId: "p3", bid: 3, bidSource: "HOST" },
+      { playerId: "p4", bid: 2, bidSource: "HOST" }
     );
-    game.rounds[0].revealed = true;
-    expect(canRevealRound(game.rounds[0], players)).toBe(false);
-  });
-});
-
-describe("game view redaction", () => {
-  it("never sends other players' bids to a viewer before reveal", () => {
-    const view = createGameView(buildGame(), GameViewerRole.VIEWER);
-    const serialised = JSON.stringify(view);
-
-    expect(view.rounds[0].players).toEqual([]);
-    expect(view.rounds[0].ownSubmission).toBeUndefined();
-    expect(serialised).not.toContain("tricksWon");
+    expect(getRoundPhase(game.rounds[0], players)).toBe("TRICKS");
   });
 
-  it("shows a player their own submission but no one else's", () => {
-    const view = createGameView(buildGame(), GameViewerRole.PLAYER, "p1");
+  it("switches the pending report to tricks once bidding is done", () => {
+    const game = buildGame();
+    game.rounds[0].entries!.push({ playerId: "p3", bid: 3 }, { playerId: "p4", bid: 2 });
+    game.rounds[0].entries![0].tricksWon = 5;
 
-    expect(view.rounds[0].ownSubmission).toMatchObject({ playerId: "p1", bid: 4, tricksWon: 5 });
-    expect(view.rounds[0].players).toEqual([]);
-    expect(JSON.stringify(view)).not.toContain("\"bid\":5");
-  });
-
-  it("withholds other submissions from the host before reveal", () => {
-    const view = createGameView(buildGame(), GameViewerRole.HOST);
-
-    expect(view.rounds[0].players).toEqual([]);
-    expect(view.rounds[0].submissions).toEqual([
+    expect(getSubmissionStates(game.rounds[0], players)).toEqual([
       { playerId: "p1", status: "SUBMITTED" },
-      { playerId: "p2", status: "SUBMITTED" },
+      { playerId: "p2", status: "PENDING" },
       { playerId: "p3", status: "PENDING" },
       { playerId: "p4", status: "PENDING" },
     ]);
   });
+});
 
-  it("exposes full scores to everyone once revealed", () => {
+describe("round completion", () => {
+  function fullyEnteredGame(tricks: number[]): Game {
+    const game = buildGame();
+    game.rounds[0].entries = players.map((player, index) => ({
+      playerId: player.id,
+      bid: 3,
+      tricksWon: tricks[index],
+    }));
+    return game;
+  }
+
+  it("allows completion once every trick is in and they total thirteen", () => {
+    const game = fullyEnteredGame([4, 3, 3, 3]);
+    expect(hasAllTricks(game.rounds[0], players)).toBe(true);
+    expect(canCompleteRound(game.rounds[0], players)).toBe(true);
+  });
+
+  it("refuses completion when the tricks do not total thirteen", () => {
+    const game = fullyEnteredGame([4, 4, 3, 3]);
+    expect(canCompleteRound(game.rounds[0], players)).toBe(false);
+  });
+
+  it("refuses completion while a trick entry is missing", () => {
+    const game = fullyEnteredGame([4, 3, 3, 3]);
+    delete game.rounds[0].entries![3].tricksWon;
+    expect(canCompleteRound(game.rounds[0], players)).toBe(false);
+  });
+
+  it("does not allow completing the same round twice", () => {
+    const game = fullyEnteredGame([4, 3, 3, 3]);
+    game.rounds[0].revealed = true;
+    expect(canCompleteRound(game.rounds[0], players)).toBe(false);
+    expect(getRoundPhase(game.rounds[0], players)).toBe("COMPLETED");
+  });
+});
+
+describe("game view", () => {
+  it("shares bids that have been entered with everyone following the game", () => {
+    const view = createGameView(buildGame(), GameViewerRole.VIEWER);
+
+    expect(view.rounds[0].entries).toEqual([
+      { playerId: "p1", bid: 4, bidSource: "PLAYER" },
+      { playerId: "p2", bid: 5, bidSource: "PLAYER" },
+    ]);
+    expect(view.rounds[0].players).toEqual([]);
+  });
+
+  it("omits values nobody has entered yet", () => {
+    const view = createGameView(buildGame(), GameViewerRole.PLAYER, "p1");
+    const entries = view.rounds[0].entries;
+
+    expect(entries.some((entry) => entry.playerId === "p3")).toBe(false);
+    expect(entries.every((entry) => entry.tricksWon === undefined)).toBe(true);
+  });
+
+  it("reports the phase so every device agrees on what to ask for", () => {
+    const game = buildGame();
+    expect(createGameView(game, GameViewerRole.PLAYER, "p1").rounds[0].phase).toBe("BIDDING");
+
+    game.rounds[0].entries!.push({ playerId: "p3", bid: 3 }, { playerId: "p4", bid: 2 });
+    expect(createGameView(game, GameViewerRole.PLAYER, "p1").rounds[0].phase).toBe("TRICKS");
+  });
+
+  it("marks which values the host supplied", () => {
+    const game = buildGame();
+    game.rounds[0].entries![0] = { playerId: "p1", bid: 6, bidSource: "HOST" };
+
+    const view = createGameView(game, GameViewerRole.PLAYER, "p1");
+    expect(view.rounds[0].entries[0]).toMatchObject({ bid: 6, bidSource: "HOST" });
+  });
+
+  it("exposes full scores to everyone once completed", () => {
     const game = buildGame();
     game.rounds[0].revealed = true;
     game.rounds[0].status = "COMPLETED";

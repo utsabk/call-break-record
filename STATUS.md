@@ -5,47 +5,54 @@ Current state of the application, kept short. Setup, deployment and troubleshoot
 
 ## Done
 
-**Domain (`shared/`)** — 67 passing tests
+**Domain (`shared/`)** — 73 passing tests
 - Round scoring in integer tenths, punishment override, round validation (tricks total 13)
 - Settlement with base bid, below-zero doubling, 20-point winner doubling, always nets to zero
 - Ranking with explicit tie detection (never invents a winner)
-- Multi-device roles, per-player submissions, reveal state, server-side redaction
+- Multi-device roles, two-phase round entries, derived phase state, view projection
 
 **Backend (`backend/`)** — 12 Lambda handlers
 - Create / read / list / delete games, game codes with collision retry
-- Host-authorised round entry, punishment, completion
-- Join with atomic seat claiming, per-player submit, host reveal
+- Per-field round entries from players or the host, punishment, round scoring, completion
+- Join with atomic seat claiming
+- Consistent reads by game code; deleting a game clears its whole partition
 - DynamoDB single-table design with conditional writes for concurrency
+- 24-hour retention through table TTL
 
 **Frontend (`frontend/`)** — static export
 - Home with active game and history, game setup, lobby with shareable code
-- Single-device scoring with live score preview and trick-total validation
-- Multi-device live screen: private entry, submission status, host reveal, connection status
-- Ranked standings, results with final settlement, dark mode
+- One live scoring screen shared by host, players and watchers, with 3-second polling
+- Players enter their own call and tricks; the host can correct anything and scores the round
+- Host can abandon a game mid-scoring
+- Ranked standings, results with base bid and final settlement, dark mode
 
 **Infrastructure (`infra/`)**
 - DynamoDB, Lambda, API Gateway, S3, CloudFront, ACM certificate, Route 53 alias records
+- CloudFront function rewriting directory paths so nested routes load directly
 - Custom domain live at https://callbreak.kharelutsab.com
 
 ## Not done
 
-- **No version control.** The working tree is not a git repository. This is the highest-priority
-  gap: there is no history, no rollback and no diffing.
 - **No automated tests for backend handlers or frontend components.** Only `shared/` is covered.
+  Authorisation and the entry priority rules are the biggest untested gap.
 - **No CI pipeline.** Build, test and deploy are all manual.
 - **No E2E tests.** The multi-device flow has never been exercised by an automated browser test.
-- **Realtime is 4-second polling**, not WebSockets.
+- **Realtime is 3-second polling**, not WebSockets.
 - **No authentication.** The game code is a shareable access token, by design for V1.
+- **Calls are public once entered.** A late bidder can see earlier calls. This matches a real
+  table, where calls are announced aloud, but it is a deliberate change from the earlier blind
+  bidding and is not configurable.
+- **TTL cleanup is best-effort.** DynamoDB usually deletes promptly but only guarantees within
+  48 hours of expiry, and games created before TTL existed are never collected.
 - **Frontend deploy is manual** (`npm run build` + `s3 sync` + invalidation); CDK does not
   upload the site.
-- **Two scoring surfaces coexist**: `/game` (single device) and `/game/live` (multi device).
-  They share the domain layer but are separate UIs.
+- **`PUT /rounds/{n}` is unused.** The old whole-round replacement endpoint is still wired.
 - **Duplicate ACM certificates** may exist in `us-east-1` from earlier manual attempts; only the
   CDK-managed one is referenced.
 
 ## Suggested next steps
 
-1. `git init`, commit, and push to a remote.
-2. Add handler-level tests for authorisation and redaction.
-3. Add a GitHub Actions workflow: install → build shared → test → build frontend.
-4. Decide whether `/game` and `/game/live` should merge into one experience.
+1. Add handler-level tests for authorisation and the player/host entry priority rules.
+2. Add a GitHub Actions workflow: install → build shared → test → build frontend.
+3. Retire `PUT /rounds/{n}` once nothing depends on it.
+4. Consider replacing polling with WebSockets if round entry starts to feel laggy.

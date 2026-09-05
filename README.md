@@ -62,8 +62,8 @@ call-break/
 │   ├── scoring.ts        calculateRoundScore, validateRound, calculateGameTotals
 │   ├── settlement.ts     calculateFinalSettlement (base bid + doubling rules)
 │   ├── ranking.ts        calculateRankings, hasRankingTie
-│   ├── multiplayer.ts    roles, submissions, reveal state, redaction
-│   └── __tests__/        67 tests
+│   ├── multiplayer.ts    roles, round entries, phase state, view projection
+│   └── __tests__/        73 tests
 │
 ├── backend/src/
 │   ├── handlers/         one file per API route (12)
@@ -76,7 +76,7 @@ call-break/
 │   ├── app/              routes (see below)
 │   └── lib/
 │       ├── repositories/ ApiGameRepository — the only place fetch() is called
-│       ├── hooks/        useGameStore (zustand), useGamePolling
+│       ├── hooks/        useGameStore (zustand)
 │       └── validation/
 │
 └── infra/lib/
@@ -92,8 +92,8 @@ call-break/
 | `/`              | Home: active game, history, create/join                     |
 | `/game/setup`    | Create a game (4 names + base bid)                          |
 | `/game/lobby`    | Shows the game code to share after creating                 |
-| `/game`          | Single-device scoring (host enters all four players)        |
-| `/game/live`     | Multi-device: private entry, submission status, host reveal |
+| `/game`          | Redirect to `/game/live` — kept for older links             |
+| `/game/live`     | The scoring screen, for host, players and watchers alike    |
 | `/game/results`  | Final ranking and settlement                                |
 | `/join`          | Enter a code, then join as player or watch                  |
 
@@ -116,7 +116,7 @@ git clone <repo> call-break
 cd call-break
 npm install                 # installs all workspaces
 npm run build:shared        # other workspaces import shared/dist
-npm test                    # 67 tests should pass
+npm test                    # 73 tests should pass
 ```
 
 `shared` **must** be built before `backend` or `frontend` type-check, because both import
@@ -230,27 +230,44 @@ can watch.
 
 **Roles**
 
-| Role     | Credential                    | Can do                                        |
-|----------|-------------------------------|-----------------------------------------------|
-| `HOST`   | `X-Host-Token` header         | Score, reveal, punish, complete, delete       |
-| `PLAYER` | `X-Session-Id` header         | Submit only their own bid and tricks          |
-| `VIEWER` | none (code only)              | Read revealed state                           |
+| Role     | Credential                    | Can do                                             |
+|----------|-------------------------------|----------------------------------------------------|
+| `HOST`   | `X-Host-Token` header         | Enter or correct any value, score, punish, delete  |
+| `PLAYER` | `X-Session-Id` header         | Enter their own call and their own tricks          |
+| `VIEWER` | none (code only)              | Follow along, read-only                            |
 
 - The **host token** is issued once at creation and stored in `localStorage`
   (`call-break:host-token:<gameId>`). It is the only proof of host identity — there is no recovery.
 - A **player session** is created by `POST /games/join`, which atomically claims a seat so two
   devices cannot control the same player.
 
-**Privacy.** Before a round is revealed, the server strips every other player's bid and tricks
-from the response — including for the host. Clients receive submission *status* only
-(`PENDING` / `SUBMITTED`) plus their own entry. This is enforced in `createGameView()`, not in
-the UI. A test asserts the serialised viewer payload contains no `tricksWon`.
+**One screen, three roles.** `/game/live` serves everyone from the same server state. The host
+sees an editable field for all four players; a player sees their own field plus everyone else's
+values as they arrive; a watcher sees the same board read-only.
 
-**Reveal.** The host can only reveal once all four players have submitted and the tricks total
-13. The reveal is a conditional DynamoDB write, so simultaneous attempts produce exactly one
-state transition.
+**Two phases per round.** A round is assembled incrementally and the phase is derived on the
+server, never held in the browser:
 
-**Live updates** use 4-second polling plus a refresh on window focus. There is no WebSocket.
+1. `BIDDING` — every seat needs a call. Players enter their own; the host enters for anyone who
+   has not joined.
+2. `TRICKS` — begins automatically once all four calls are in. Same pattern.
+3. `COMPLETED` — the host presses *Score round*. The backend recomputes every score from the
+   stored entries and enforces the 13-trick rule.
+
+**Who wins a conflict.** A player's call stands once made — resubmitting is rejected. The host
+may overwrite any value at any time before the round is scored. Every value records whether a
+player or the host supplied it, and the UI says so.
+
+**Visibility.** Calls and tricks are shared with everyone following the game as soon as they are
+entered, mirroring a real table where calls are announced aloud. Only values nobody has entered
+yet are absent from the payload. Scores stay server-side until the round is completed.
+
+Each entry is written as an individual field update, so a call and a trick count arriving at the
+same instant from different devices cannot overwrite each other. Completion is a conditional
+DynamoDB write, so simultaneous attempts produce exactly one state transition.
+
+**Live updates** use 3-second polling plus a refresh on window focus. There is no WebSocket.
+Text being typed is held locally, so a refresh never overwrites a field mid-edit.
 
 ---
 
@@ -263,15 +280,22 @@ Base URL: `https://<api-id>.execute-api.eu-west-1.amazonaws.com/prod`
 | `POST`   | `/games`                                                          | none       | Create a game; returns host token |
 | `GET`    | `/games`                                                          | none       | List games                     |
 | `POST`   | `/games/join`                                                     | none       | Join as player or viewer       |
-| `GET`    | `/games/code/{gameCode}`                                          | optional   | Redacted view for the caller   |
+| `GET`    | `/games/code/{gameCode}`                                          | optional   | The game view for the caller   |
 | `GET`    | `/games/{gameId}`                                                 | none       | Fetch by id                    |
-| `DELETE` | `/games/{gameId}`                                                 | host       | Delete a game                  |
-| `PUT`    | `/games/{gameId}/rounds/{n}`                                      | host       | Single-device round entry      |
-| `POST`   | `/games/{gameId}/rounds/{n}/submit`                               | session    | Submit own bid/tricks          |
-| `POST`   | `/games/{gameId}/rounds/{n}/reveal`                               | host       | Reveal a completed round       |
+| `DELETE` | `/games/{gameId}`                                                 | host       | Delete a game and everything it owns |
+| `PUT`    | `/games/{gameId}/rounds/{n}`                                      | host       | Replace a whole round (legacy) |
+| `POST`   | `/games/{gameId}/rounds/{n}/submit`                               | session or host | Set a call, tricks or disqualification |
+| `POST`   | `/games/{gameId}/rounds/{n}/reveal`                               | host       | Score the round                |
 | `POST`   | `/games/{gameId}/rounds/{n}/players/{playerId}/punishment`        | host       | Apply punishment               |
 | `DELETE` | `/games/{gameId}/rounds/{n}/players/{playerId}/punishment`        | host       | Remove punishment              |
 | `POST`   | `/games/{gameId}/complete`                                        | host       | Finish the game                |
+
+`submit` takes any subset of `{ playerId, bid, tricksWon, punished }`. A player may omit
+`playerId` — the seat comes from their session, so nobody can enter a score for someone else.
+Only the host may pass `playerId` or `punished`.
+
+The `reveal` path keeps its original name because it is already wired in API Gateway; it now
+scores the round rather than lifting a curtain on hidden values.
 
 Responses are always `{ success, data }` or `{ success, error: { message, code } }`.
 
@@ -290,9 +314,21 @@ Single DynamoDB table, `PK` / `SK`:
 | Game        | `GAME#<gameId>`  | `METADATA#<gameId>`       | players, rules, rounds, hostToken      |
 | Seat claim  | `GAME#<gameId>`  | `SEAT#<playerId>`         | conditional write prevents double-claim|
 | Session     | `GAME#<gameId>`  | `SESSION#<sessionId>`     | role + playerId                        |
-| Submission  | `GAME#<gameId>`  | `SUB#<round>#<playerId>`  | one item per player per round          |
+| Round entry | `GAME#<gameId>`  | `SUB#<round>#<playerId>`  | optional `bid` / `tricksWon` + source  |
 
-Submissions are separate items so simultaneous players cannot overwrite each other.
+A round entry is one item per player per round, updated field by field. `bidSource` and
+`tricksSource` record whether the value came from the player or the host.
+
+**Retention.** Every item carries an `expiresAt` epoch-second attribute and the table has TTL
+enabled, so a game is removed roughly 24 hours after it was created. DynamoDB deletes on a
+best-effort basis — usually promptly, but AWS only guarantees within 48 hours of expiry. Items
+written before TTL was introduced have no `expiresAt` and will not be collected.
+
+Deleting a game removes every item in its partition, not just the metadata row.
+
+**Reads.** A game is resolved by code through `GameCodeIndex` to get its id, then read from the
+base table with a consistent read. Reading the whole game from the index would serve a stale
+copy for a moment after each write.
 
 **Indexes:** `GameCodeIndex` (join by code), `StatusIndex`, `AllGamesIndex` (list).
 
@@ -414,6 +450,20 @@ Fonts are loaded through `next/font` and self-hosted. Do not add `@import url(..
 `globals.css` — an `@import` after the `@tailwind` directives is ignored by browsers, which
 silently drops the fonts.
 
+**A direct load or refresh of a nested route shows the home page.**
+The export writes every route as `<route>/index.html`, but S3 behind an origin access identity
+serves no directory index, so `/game/results/` 404s — and the 404 → `/index.html` error mapping
+turns that into the home page with status 200. A CloudFront viewer-request function rewrites
+directory-style paths to their `index.html`. Clicking a link in the app hides the problem,
+because that is client-side routing with no origin request.
+
+**A finished game still looks unfinished, then fixes itself minutes later.**
+A stale read from a global secondary index. Resolve the code to an id through the index, then
+read the game from the base table with `ConsistentRead`.
+
+**A game vanished overnight.**
+Expected. Table TTL removes each game about 24 hours after it was created.
+
 **"Only the host can change this game" (403).**
 That browser has no host token for the game. Tokens live in `localStorage` on the creating
 device and are not transferable.
@@ -435,6 +485,11 @@ Run `npm run build:shared`.
 - Scoring, settlement and ranking live in `shared/` as pure functions. UI and handlers call
   them; they never reimplement them.
 - The backend recalculates scores from stored input. A client-supplied score is never trusted.
+- Round phase is derived on the server from stored entries. The browser never decides which
+  phase a round is in.
+- What each role may see is decided in `createGameView()`, not in the UI. Entered calls and
+  tricks are shared with everyone; the server still decides that, and a component never receives
+  a value it is meant to hide.
 - Derived values (totals, rankings, settlement) are computed from round data, never stored as
   the source of truth.
 - Strict TypeScript everywhere. No `any`.

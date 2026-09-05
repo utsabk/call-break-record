@@ -130,15 +130,21 @@ export class ApiGameRepository {
     return result;
   }
 
-  async submitPlayerRound(gameCode: string, gameId: string, roundNumber: number, bid: number, tricksWon: number): Promise<GameView> {
+  /** Saves whichever fields are supplied; the host may target another player's seat. */
+  async saveRoundEntry(
+    gameCode: string,
+    gameId: string,
+    roundNumber: number,
+    patch: { playerId?: string; bid?: number; tricksWon?: number; punished?: boolean }
+  ): Promise<GameView> {
     return this.request<GameView>(`/games/${encodeURIComponent(gameId)}/rounds/${roundNumber}/submit`, {
       method: "POST",
-      headers: this.sessionHeaders(gameCode),
-      body: JSON.stringify({ bid, tricksWon }),
+      headers: { ...this.hostHeaders(gameId), ...this.sessionHeaders(gameCode) },
+      body: JSON.stringify(patch),
     });
   }
 
-  async revealRound(gameCode: string, gameId: string, roundNumber: number): Promise<GameView> {
+  async completeRound(gameCode: string, gameId: string, roundNumber: number): Promise<GameView> {
     return this.request<GameView>(`/games/${encodeURIComponent(gameId)}/rounds/${roundNumber}/reveal`, {
       method: "POST",
       headers: { ...this.hostHeaders(gameId), ...this.sessionHeaders(gameCode) },

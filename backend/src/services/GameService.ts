@@ -16,9 +16,14 @@ import {
   PunishmentReason,
   calculateGameTotals,
   calculateRankings,
-  canRevealRound,
   createGameView,
+  findEntry,
+  getRoundPhase,
+  hasAllBids,
+  hasAllTricks,
   hasRankingTie,
+  isRoundRevealed,
+  totalTricksEntered,
   calculateRoundScore,
 } from "@call-break/shared";
 import { gameRepository } from "../repositories/GameRepository";
@@ -136,8 +141,8 @@ export class GameService {
   }
 
   async getGameView(game: Game, session: GameSession): Promise<GameView> {
-    const [submissionsByRound, claimedPlayerIds] = await Promise.all([
-      gameRepository.listAllSubmissions(game.id),
+    const [entriesByRound, claimedPlayerIds] = await Promise.all([
+      gameRepository.listAllEntries(game.id),
       gameRepository.listClaimedPlayerIds(game.id),
     ]);
 
@@ -145,7 +150,7 @@ export class GameService {
       ...game,
       rounds: game.rounds.map((round) => ({
         ...round,
-        submissions: submissionsByRound.get(round.roundNumber) || [],
+        entries: entriesByRound.get(round.roundNumber) || [],
       })),
     };
 
@@ -162,19 +167,23 @@ export class GameService {
     return this.getGameView(game, session);
   }
 
-  /** The player is taken from the session, so nobody can submit for someone else. */
-  async submitPlayerRound(
+  /**
+   * A player fills in their own values; the host may fill in or correct anyone's.
+   * The seat is taken from the session, so nobody can enter a score for someone else.
+   */
+  async setRoundEntry(
     gameId: string,
-    sessionId: string | undefined,
     roundNumber: number,
-    bid: number,
-    tricksWon: number
+    input: { playerId?: string; bid?: number; tricksWon?: number; punished?: boolean },
+    sessionId: string | undefined,
+    hostToken: string | undefined
   ): Promise<GameView> {
     const game = await this.getGame(gameId);
-    const session = await this.resolveSession(gameId, sessionId, undefined);
+    const session = await this.resolveSession(gameId, sessionId, hostToken);
+    const isHost = session.role === GameViewerRole.HOST;
 
-    if (session.role !== GameViewerRole.PLAYER || !session.playerId) {
-      throw new ValidationError("Join as a player before submitting a score", "NOT_A_PLAYER");
+    if (!isHost && session.role !== GameViewerRole.PLAYER) {
+      throw new ValidationError("Join as a player before entering a score", "NOT_A_PLAYER");
     }
     if (game.status !== GameStatus.ACTIVE) {
       throw new ValidationError("This game has finished", "GAME_COMPLETED");
@@ -182,28 +191,65 @@ export class GameService {
     if (roundNumber < 1 || roundNumber > game.rules.rounds) {
       throw new ValidationError("Invalid round number", "INVALID_ROUND");
     }
-    if (game.rounds[roundNumber - 1].revealed) {
-      throw new ValidationError("This round has already been revealed", "ROUND_REVEALED");
-    }
-    if (!Number.isInteger(bid) || bid < 1 || bid > 13) {
-      throw new ValidationError("Bid must be between 1 and 13", "INVALID_BID");
-    }
-    if (!Number.isInteger(tricksWon) || tricksWon < 0 || tricksWon > 13) {
-      throw new ValidationError("Tricks must be between 0 and 13", "INVALID_TRICKS");
+    if (!isHost && input.playerId && input.playerId !== session.playerId) {
+      throw new ValidationError("You can only enter your own score", "NOT_YOUR_SEAT");
     }
 
-    await gameRepository.putSubmission(gameId, roundNumber, {
-      playerId: session.playerId,
-      bid,
-      tricksWon,
-      submittedAt: new Date(),
+    const targetPlayerId = isHost ? input.playerId : session.playerId;
+    if (!targetPlayerId) {
+      throw new ValidationError("Choose which player this entry is for", "PLAYER_REQUIRED");
+    }
+    if (!game.players.some((player) => player.id === targetPlayerId)) {
+      throw new ValidationError("That player is not in this game", "PLAYER_NOT_FOUND");
+    }
+    if (input.bid === undefined && input.tricksWon === undefined && input.punished === undefined) {
+      throw new ValidationError("Nothing to save", "EMPTY_ENTRY");
+    }
+    if (input.punished !== undefined && !isHost) {
+      throw new ValidationError("Only the scorer can disqualify a player", "UNAUTHORIZED");
+    }
+
+    const entries = await gameRepository.listEntries(gameId, roundNumber);
+    const round: Round = { ...game.rounds[roundNumber - 1], entries };
+    if (isRoundRevealed(round)) {
+      throw new ValidationError("This round has already been scored", "ROUND_COMPLETED");
+    }
+    const existing = findEntry(round, targetPlayerId);
+
+    if (input.bid !== undefined) {
+      if (!Number.isInteger(input.bid) || input.bid < 1 || input.bid > 13) {
+        throw new ValidationError("Bid must be between 1 and 13", "INVALID_BID");
+      }
+      // A player's own call stands once made; only the scorer may revise it.
+      if (!isHost && typeof existing?.bid === "number") {
+        throw new ValidationError("Your bid is already in. Ask the scorer to change it.", "BID_ALREADY_SET");
+      }
+    }
+
+    if (input.tricksWon !== undefined) {
+      if (!Number.isInteger(input.tricksWon) || input.tricksWon < 0 || input.tricksWon > 13) {
+        throw new ValidationError("Tricks must be between 0 and 13", "INVALID_TRICKS");
+      }
+      if (getRoundPhase(round, game.players) === "BIDDING") {
+        throw new ValidationError("Every player must bid before tricks are entered", "BIDDING_INCOMPLETE");
+      }
+      if (!isHost && typeof existing?.tricksWon === "number") {
+        throw new ValidationError("Your tricks are already in. Ask the scorer to change them.", "TRICKS_ALREADY_SET");
+      }
+    }
+
+    await gameRepository.saveEntry(gameId, roundNumber, targetPlayerId, {
+      ...(input.bid !== undefined ? { bid: input.bid } : {}),
+      ...(input.tricksWon !== undefined ? { tricksWon: input.tricksWon } : {}),
+      ...(input.punished !== undefined ? { punished: input.punished } : {}),
+      source: isHost ? "HOST" : "PLAYER",
     });
 
     return this.getGameView(game, session);
   }
 
-  /** Host-only. Scores are computed here from stored submissions, never trusted from a client. */
-  async revealRound(gameId: string, roundNumber: number, hostToken: string | undefined): Promise<GameView> {
+  /** Host-only. Scores are computed here from stored entries, never trusted from a client. */
+  async completeRound(gameId: string, roundNumber: number, hostToken: string | undefined): Promise<GameView> {
     await this.requireHost(gameId, hostToken);
     const game = await this.getGame(gameId);
 
@@ -211,25 +257,34 @@ export class GameService {
       throw new ValidationError("Invalid round number", "INVALID_ROUND");
     }
 
-    const submissions = await gameRepository.listSubmissions(gameId, roundNumber);
-    const round = { ...game.rounds[roundNumber - 1], submissions };
-    if (!canRevealRound(round, game.players)) {
-      throw new ValidationError("Every player must submit before the round can be revealed", "SUBMISSIONS_INCOMPLETE");
+    const entries = await gameRepository.listEntries(gameId, roundNumber);
+    const round: Round = { ...game.rounds[roundNumber - 1], entries };
+
+    if (isRoundRevealed(round)) {
+      throw new ValidationError("This round was already scored", "ALREADY_REVEALED");
+    }
+    if (!hasAllBids(round, game.players)) {
+      throw new ValidationError("Every player needs a bid before the round can be scored", "BIDS_INCOMPLETE");
+    }
+    if (!hasAllTricks(round, game.players)) {
+      throw new ValidationError("Every player needs their tricks before the round can be scored", "TRICKS_INCOMPLETE");
     }
 
-    const totalTricks = submissions.reduce((total, submission) => total + submission.tricksWon, 0);
-    if (totalTricks !== 13) {
-      throw new ValidationError(`The tricks entered add up to ${totalTricks}, not 13. Ask the players to check their entries.`, "INVALID_TRICKS_TOTAL");
+    const total = totalTricksEntered(round, game.players);
+    if (total !== 13) {
+      throw new ValidationError(`The tricks entered add up to ${total}, not 13. Check the entries and try again.`, "INVALID_TRICKS_TOTAL");
     }
 
     const playerRounds: PlayerRound[] = game.players.map((player) => {
-      const submission = submissions.find((candidate) => candidate.playerId === player.id)!;
-      const { scoreTenths } = calculateRoundScore(submission.bid, submission.tricksWon, false);
+      const entry = findEntry(round, player.id)!;
+      const punished = entry.punished ?? false;
+      const { scoreTenths } = calculateRoundScore(entry.bid!, entry.tricksWon!, punished);
       return {
         playerId: player.id,
-        bid: submission.bid,
-        tricksWon: submission.tricksWon,
-        punished: false,
+        bid: entry.bid!,
+        tricksWon: entry.tricksWon!,
+        punished,
+        ...(punished ? { punishmentReason: PunishmentReason.UNFAIR_PLAY } : {}),
         scoreTenths,
       };
     });
@@ -246,7 +301,7 @@ export class GameService {
     const updatedGame: Game = { ...game, rounds: updatedRounds, updatedAt: new Date() };
     const revealed = await gameRepository.revealRound(updatedGame, roundNumber);
     if (!revealed) {
-      throw new ValidationError("This round was already revealed", "ALREADY_REVEALED");
+      throw new ValidationError("This round was already scored", "ALREADY_REVEALED");
     }
 
     return this.getGameView(updatedGame, { sessionId: "host", gameId, role: GameViewerRole.HOST });

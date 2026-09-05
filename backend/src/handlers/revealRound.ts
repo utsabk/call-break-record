@@ -12,14 +12,14 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       return createErrorLambdaResponse(400, "Game and round are required", "MISSING_PARAMETERS");
     }
 
-    const view = await gameService.revealRound(gameId, roundNumber, readHostToken(event.headers));
+    const view = await gameService.completeRound(gameId, roundNumber, readHostToken(event.headers));
     return createLambdaResponse(200, successResponse(view));
   } catch (error) {
-    console.error("Error revealing round:", error);
+    console.error("Error completing round:", error);
     if (error instanceof ValidationError) {
       const statusCode = error.code === "UNAUTHORIZED" ? 403 : error.code === "NOT_FOUND" ? 404 : 409;
       return createErrorLambdaResponse(statusCode, error.message, error.code);
     }
-    return createErrorLambdaResponse(500, "Could not reveal the round", "INTERNAL_ERROR");
+    return createErrorLambdaResponse(500, "Could not score the round", "INTERNAL_ERROR");
   }
 };

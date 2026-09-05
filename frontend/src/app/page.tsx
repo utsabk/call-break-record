@@ -69,7 +69,7 @@ export default function Home() {
             <p className="eyebrow">Active game</p>
             <p className="mt-2 font-display text-2xl font-bold">{activeGame.players.map((player) => player.name).join(" · ")}</p>
             <p className="mt-2 text-sm text-[var(--muted)]">Round {activeGame.rounds.filter((round) => round.status === "COMPLETED").length + 1} / {activeGame.rules.rounds}</p>
-            <Link href={`/game/?id=${activeGame.id}`} className="btn-primary mt-5 w-full">Continue game <ChevronRight size={18} /></Link>
+            <Link href={`/game/live/?code=${activeGame.gameCode}`} className="btn-primary mt-5 w-full">Continue game <ChevronRight size={18} /></Link>
           </div>
         )}
 
