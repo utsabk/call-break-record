@@ -96,7 +96,11 @@ Each of these cost real debugging time. Check them before re-diagnosing.
   client-side routing with no origin request.
 - **Never read a whole game from a global secondary index.** The index lags writes, so a
   finished game comes back looking unfinished for a moment. Resolve the code to an id via
-  `GameCodeIndex`, then read the base table with `ConsistentRead`.
+  `GameCodeIndex`, then read the base table. Polling reads may be eventually consistent; any
+  read on a write path must not be.
+- **Watch the request count, not just the payload.** Polling multiplies every cost by the number
+  of devices. `Access-Control-Max-Age` matters because a custom header makes each poll a
+  non-simple CORS request, and without it browsers re-run the preflight every few seconds.
 - **Round phase must not live in the browser.** It was once a `localStorage` draft on the host
   screen, which is why player entries never reached the host.
 - **Deleting a game must clear the whole partition.** Seats, sessions and entries are separate

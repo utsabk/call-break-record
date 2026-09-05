@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Clock, Copy, Eye, Loader2, MoreHorizontal, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
@@ -19,6 +19,17 @@ type Connection = "LIVE" | "RECONNECTING" | "OFFLINE";
 type EntryField = "bid" | "tricksWon";
 
 const MEDALS = ["🥇", "🥈", "🥉", "4️⃣"];
+
+const ACTIVE_POLL_MS = 3000;
+const WATCHER_POLL_MS = 10000;
+const IDLE_POLL_MS = 15000;
+/** Polls without a change before backing off, roughly a minute of a still board. */
+const IDLE_POLLS_BEFORE_BACKOFF = 20;
+
+/** Entry writes do not touch the game's updatedAt, so compare what actually moves. */
+function boardSignature(game: GameView): string {
+  return JSON.stringify([game.status, game.claimedPlayerIds, game.rounds.map((round) => [round.phase, round.revealed, round.entries])]);
+}
 
 function formatScore(scoreTenths: number): string {
   const sign = scoreTenths >= 0 ? "+" : "-";
@@ -57,6 +68,9 @@ export default function LiveGamePage() {
   const [punishmentReason, setPunishmentReason] = useState(PunishmentReason.WRONG_CARD);
   const [showAbandonDialog, setShowAbandonDialog] = useState(false);
   const [isAbandoning, setIsAbandoning] = useState(false);
+  const pollDelayRef = useRef(ACTIVE_POLL_MS);
+  const signatureRef = useRef("");
+  const idlePollsRef = useRef(0);
 
   useEffect(() => {
     setGameCode(new URLSearchParams(window.location.search).get("code")?.toUpperCase() ?? "");
@@ -65,7 +79,11 @@ export default function LiveGamePage() {
   const refresh = useCallback(async () => {
     if (!gameCode) return;
     try {
-      setGame(await apiGameRepository.getGameView(gameCode));
+      const next = await apiGameRepository.getGameView(gameCode);
+      const signature = boardSignature(next);
+      idlePollsRef.current = signature === signatureRef.current ? idlePollsRef.current + 1 : 0;
+      signatureRef.current = signature;
+      setGame(next);
       setConnection(navigator.onLine ? "LIVE" : "OFFLINE");
     } catch (refreshError) {
       if (refreshError instanceof Error && refreshError.message.toLowerCase().includes("not found")) setNotFound(true);
@@ -75,12 +93,29 @@ export default function LiveGamePage() {
 
   useEffect(() => {
     if (!gameCode) return;
-    void refresh();
-    const interval = window.setInterval(() => void refresh(), 3000);
-    window.addEventListener("focus", refresh);
+    let stopped = false;
+    let timer = 0;
+
+    const tick = async () => {
+      // A hidden tab is throttled by the browser anyway, so skip the request entirely.
+      if (!document.hidden) await refresh();
+      if (!stopped) timer = window.setTimeout(tick, pollDelayRef.current);
+    };
+
+    const refreshNow = () => {
+      if (document.hidden) return;
+      idlePollsRef.current = 0;
+      void refresh();
+    };
+
+    void tick();
+    window.addEventListener("focus", refreshNow);
+    document.addEventListener("visibilitychange", refreshNow);
     return () => {
-      window.clearInterval(interval);
-      window.removeEventListener("focus", refresh);
+      stopped = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("focus", refreshNow);
+      document.removeEventListener("visibilitychange", refreshNow);
     };
   }, [gameCode, refresh]);
 
@@ -111,6 +146,14 @@ export default function LiveGamePage() {
   const ownPlayerId = session?.playerId;
   const isPlayer = Boolean(ownPlayerId) && game.players.some((player) => player.id === ownPlayerId);
   const isWatcher = !isHost && !isPlayer;
+
+  // Watchers and a settled board do not need the fast cadence a player entering a score does.
+  pollDelayRef.current =
+    game.status !== GameStatus.ACTIVE || idlePollsRef.current >= IDLE_POLLS_BEFORE_BACKOFF
+      ? IDLE_POLL_MS
+      : isWatcher
+        ? WATCHER_POLL_MS
+        : ACTIVE_POLL_MS;
 
   const liveRound = currentRoundOf(game);
   const selectedRound = game.rounds.find((round) => round.roundNumber === selectedRoundNumber) ?? liveRound;
@@ -179,6 +222,7 @@ export default function LiveGamePage() {
         [entryField]: value,
       });
       setGame(updated);
+      idlePollsRef.current = 0;
       setDrafts((current) => { const next = { ...current }; delete next[key]; return next; });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save that entry.");

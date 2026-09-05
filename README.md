@@ -270,8 +270,13 @@ Each entry is written as an individual field update, so a call and a trick count
 same instant from different devices cannot overwrite each other. Completion is a conditional
 DynamoDB write, so simultaneous attempts produce exactly one state transition.
 
-**Live updates** use 3-second polling plus a refresh on window focus. There is no WebSocket.
+**Live updates** are polled, not pushed. The cadence adapts: 3 seconds for the host and players,
+10 for watchers, backing off to 15 once the board has been still for about a minute or the game
+has finished. A hidden tab does not poll at all, and regaining focus refreshes immediately.
 Text being typed is held locally, so a refresh never overwrites a field mid-edit.
+
+Every write returns the updated view, so whoever just entered a value sees it applied without
+waiting for the next poll.
 
 ---
 
@@ -330,9 +335,13 @@ written before TTL was introduced have no `expiresAt` and will not be collected.
 
 Deleting a game removes every item in its partition, not just the metadata row.
 
-**Reads.** A game is resolved by code through `GameCodeIndex` to get its id, then read from the
-base table with a consistent read. Reading the whole game from the index would serve a stale
-copy for a moment after each write.
+**Reads.** A game is resolved by code through `GameCodeIndex` to get its id, which is then cached
+in the Lambda container because a code never moves to another game. Metadata and seat items are
+adjacent in the sort key, so one query returns both; entries are a second query.
+
+The polling path reads with eventual consistency, because a poll can tolerate a moment of
+staleness. Every write path reads consistently, so the person who just entered a value always
+sees it, and a finished game is never served as though it were still in progress.
 
 **Indexes:** `GameCodeIndex` (join by code), `StatusIndex`, `AllGamesIndex` (list).
 

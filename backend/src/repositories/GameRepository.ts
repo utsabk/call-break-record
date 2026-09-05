@@ -16,13 +16,28 @@ const dynamodb = new DynamoDB.DocumentClient({
 const TABLE_NAME = process.env.DYNAMODB_TABLE || "CallBreakGames";
 const GAME_RETENTION_HOURS = 24;
 
+/** A code never moves to another game, so a resolved id is reusable for the container's life. */
+const gameIdByCode = new Map<string, string>();
+
 /** DynamoDB TTL expects epoch seconds; games are purged a day after they are created. */
 function expiresAt(from: Date = new Date()): number {
   return Math.floor(from.getTime() / 1000) + GAME_RETENTION_HOURS * 60 * 60;
 }
 
-function toRoundEntry(item: DynamoDB.DocumentClient.AttributeMap): RoundEntry {
+function toGame(item: DynamoDB.DocumentClient.AttributeMap): Game {
   return {
+    id: item.gameId,
+    gameCode: item.gameCode,
+    players: item.players,
+    rules: item.rules,
+    rounds: item.rounds,
+    status: item.status,
+    createdAt: new Date(item.createdAt),
+    updatedAt: new Date(item.updatedAt),
+  };
+}
+
+function toRoundEntry(item: DynamoDB.DocumentClient.AttributeMap): RoundEntry {  return {
     playerId: item.playerId as string,
     ...(typeof item.bid === "number" ? { bid: item.bid } : {}),
     ...(typeof item.tricksWon === "number" ? { tricksWon: item.tricksWon } : {}),
@@ -91,17 +106,7 @@ export class DynamoDBGameRepository implements IGameRepository {
         return null;
       }
 
-      const item = result.Item as any;
-      return {
-        id: item.gameId,
-        gameCode: item.gameCode,
-        players: item.players,
-        rules: item.rules,
-        rounds: item.rounds,
-        status: item.status,
-        createdAt: new Date(item.createdAt),
-        updatedAt: new Date(item.updatedAt),
-      };
+      return toGame(result.Item);
     } catch (error) {
       console.error("Error getting game:", error);
       throw error;
@@ -109,11 +114,40 @@ export class DynamoDBGameRepository implements IGameRepository {
   }
 
   /**
+   * Metadata and seat items are adjacent in the sort key, so one query returns the game and its
+   * claimed seats. Session items sort after seats and are deliberately outside the range.
+   */
+  async getGameBundle(
+    gameId: string,
+    consistent: boolean
+  ): Promise<{ game: Game; hostToken?: string; claimedPlayerIds: string[] } | null> {
+    const result = await dynamodb.query({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND SK BETWEEN :from AND :to",
+      ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":from": "METADATA#", ":to": "SEAT#\uffff" },
+      ConsistentRead: consistent,
+    }).promise();
+
+    const items = result.Items || [];
+    const metadata = items.find((item) => String(item.SK).startsWith("METADATA#"));
+    if (!metadata) return null;
+
+    return {
+      game: toGame(metadata),
+      ...(typeof metadata.hostToken === "string" ? { hostToken: metadata.hostToken } : {}),
+      claimedPlayerIds: items.filter((item) => String(item.SK).startsWith("SEAT#")).map((item) => item.playerId as string),
+    };
+  }
+
+  /**
    * The index only resolves the code to an id. Round and status data is then read from the
    * base table, because a global secondary index lags behind writes and would otherwise serve
    * a finished game as though it were still in progress.
    */
-  async getGameByCode(gameCode: string): Promise<Game | null> {
+  async getGameIdByCode(gameCode: string): Promise<string | null> {
+    const cached = gameIdByCode.get(gameCode);
+    if (cached) return cached;
+
     const result = await dynamodb.query({
       TableName: TABLE_NAME,
       IndexName: "GameCodeIndex",
@@ -122,8 +156,18 @@ export class DynamoDBGameRepository implements IGameRepository {
       ProjectionExpression: "gameId",
       Limit: 1,
     }).promise();
+
     const gameId = result.Items?.[0]?.gameId;
     if (typeof gameId !== "string") return null;
+
+    if (gameIdByCode.size > 500) gameIdByCode.clear();
+    gameIdByCode.set(gameCode, gameId);
+    return gameId;
+  }
+
+  async getGameByCode(gameCode: string): Promise<Game | null> {
+    const gameId = await this.getGameIdByCode(gameCode);
+    if (!gameId) return null;
     return this.getGame(gameId);
   }
 
@@ -316,12 +360,12 @@ export class DynamoDBGameRepository implements IGameRepository {
     return (result.Items || []).map(toRoundEntry);
   }
 
-  async listAllEntries(gameId: string): Promise<Map<number, RoundEntry[]>> {
+  async listAllEntries(gameId: string, consistent = true): Promise<Map<number, RoundEntry[]>> {
     const result = await dynamodb.query({
       TableName: TABLE_NAME,
       KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
       ExpressionAttributeValues: { ":pk": `GAME#${gameId}`, ":sk": "SUB#" },
-      ConsistentRead: true,
+      ConsistentRead: consistent,
     }).promise();
 
     const byRound = new Map<number, RoundEntry[]>();

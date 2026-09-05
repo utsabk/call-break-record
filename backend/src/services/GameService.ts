@@ -157,14 +157,44 @@ export class GameService {
     return createGameView(hydrated, session.role, session.playerId, claimedPlayerIds);
   }
 
+  /**
+   * The polling read path. Kept deliberately lean: one query for the game and its seats, one
+   * for the entries, and a session lookup only when the caller sent one. Reads are eventually
+   * consistent because a poll can tolerate a moment of staleness; every write path still reads
+   * consistently so the person who just typed a value always sees it.
+   */
   async getGameViewByCode(
     gameCode: string,
     sessionId: string | undefined,
     hostToken: string | undefined
   ): Promise<GameView> {
-    const game = await this.getGameByCode(gameCode);
-    const session = await this.resolveSession(game.id, sessionId, hostToken);
-    return this.getGameView(game, session);
+    const gameId = await gameRepository.getGameIdByCode(gameCode);
+    if (!gameId) throw new ValidationError("Game not found", "NOT_FOUND");
+
+    const [bundle, entriesByRound] = await Promise.all([
+      gameRepository.getGameBundle(gameId, false),
+      gameRepository.listAllEntries(gameId, false),
+    ]);
+    if (!bundle) throw new ValidationError("Game not found", "NOT_FOUND");
+
+    let session: GameSession = { sessionId: "anonymous", gameId, role: GameViewerRole.VIEWER };
+    if (sessionId) {
+      const stored = await gameRepository.getSession(gameId, sessionId);
+      if (stored) session = stored;
+    }
+    if (session.role === GameViewerRole.VIEWER && hostToken && bundle.hostToken && hostToken === bundle.hostToken) {
+      session = { sessionId: "host", gameId, role: GameViewerRole.HOST };
+    }
+
+    const hydrated: Game = {
+      ...bundle.game,
+      rounds: bundle.game.rounds.map((round) => ({
+        ...round,
+        entries: entriesByRound.get(round.roundNumber) || [],
+      })),
+    };
+
+    return createGameView(hydrated, session.role, session.playerId, bundle.claimedPlayerIds);
   }
 
   /**

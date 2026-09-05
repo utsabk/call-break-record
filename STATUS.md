@@ -37,7 +37,8 @@ Current state of the application, kept short. Setup, deployment and troubleshoot
   Authorisation and the entry priority rules are the biggest untested gap.
 - **No CI pipeline.** Build, test and deploy are all manual.
 - **No E2E tests.** The multi-device flow has never been exercised by an automated browser test.
-- **Realtime is 3-second polling**, not WebSockets.
+- **Realtime is polling**, not WebSockets: 3s for participants, 10s for watchers, backing off to
+  15s when idle, paused on hidden tabs.
 - **No authentication.** The game code is a shareable access token, by design for V1.
 - **Calls are public once entered.** A late bidder can see earlier calls. This matches a real
   table, where calls are announced aloud, but it is a deliberate change from the earlier blind

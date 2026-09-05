@@ -165,6 +165,8 @@ function handler(event) {
       defaultCorsPreflightOptions: {
         allowHeaders: ["Content-Type", "Authorization", "X-Host-Token", "X-Session-Id"],
         allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        // Polling sends X-Session-Id, so without this every few polls pays for a preflight too.
+        maxAge: cdk.Duration.minutes(10),
         allowOrigins: [
           "http://localhost:3000",
           "http://localhost:3001",
