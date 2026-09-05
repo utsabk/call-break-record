@@ -230,7 +230,8 @@ export class GameService {
       if (!Number.isInteger(input.tricksWon) || input.tricksWon < 0 || input.tricksWon > 13) {
         throw new ValidationError("Tricks must be between 0 and 13", "INVALID_TRICKS");
       }
-      if (getRoundPhase(round, game.players) === "BIDDING") {
+      // Players follow the two-step flow; the host may fill a seat in one pass.
+      if (!isHost && getRoundPhase(round, game.players) === "BIDDING") {
         throw new ValidationError("Every player must bid before tricks are entered", "BIDDING_INCOMPLETE");
       }
       if (!isHost && typeof existing?.tricksWon === "number") {

@@ -74,8 +74,10 @@ These are load-bearing. Breaking one causes subtle, hard-to-trace bugs.
 `BIDDING` → `TRICKS` → `COMPLETED`, derived by `getRoundPhase` from stored entries.
 
 - Bidding ends when all four seats have a call, whoever entered it.
-- A player enters only their own value, and only once — their call stands.
-- The host may enter or correct any value until the round is scored.
+- A player enters only their own value, only once, and cannot enter tricks before every call is in.
+- The host may enter or correct any value for any seat at any point before the round is scored,
+  and is not held to the two-step order.
+- The host may delete the game at any time, finished or not.
 - The host scores the round; the backend recomputes from stored entries and enforces 13 tricks.
 - `/game/live` serves host, player and watcher from the same state. Do not add a second scoring
   screen — that split is exactly what caused host and players to drift out of sync before.

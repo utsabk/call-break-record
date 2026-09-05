@@ -135,6 +135,26 @@ export default function LiveGamePage() {
     return value === undefined ? "" : String(value);
   };
 
+  const entryInput = (player: Player, entryField: EntryField, disabled = false) => {
+    const key = draftKey(player.id, entryField);
+    return (
+      <input
+        className="input-base score-number w-20 text-center text-lg font-semibold"
+        type="number"
+        inputMode="numeric"
+        min={entryField === "bid" ? 1 : 0}
+        max={13}
+        step={1}
+        aria-label={`${player.name} ${entryField === "bid" ? "call" : "tricks won"}`}
+        disabled={disabled || busyKey === key}
+        value={displayValue(player, entryField)}
+        onChange={(event) => setDrafts((current) => ({ ...current, [key]: event.target.value }))}
+        onBlur={(event) => void saveEntry(player.id, entryField, event.target.value)}
+        onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+      />
+    );
+  };
+
   const saveEntry = async (playerId: string, entryField: EntryField, raw: string) => {
     const key = draftKey(playerId, entryField);
     const value = Number(raw);
@@ -308,11 +328,10 @@ export default function LiveGamePage() {
               const source = sourceOf(entry, field);
               const isOwnRow = player.id === ownPlayerId;
               const isClaimed = game.claimedPlayerIds.includes(player.id);
-              const canEdit = isHost || (isOwnRow && value === undefined);
-              const key = draftKey(player.id, field);
+              const canEdit = isOwnRow && value === undefined;
 
               return (
-                <div key={player.id} className="flex items-center gap-3 border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
+                <div key={player.id} className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
                   <span className="flex-shrink-0">
                     {value === undefined
                       ? <Clock size={18} className="text-[var(--muted)]" aria-hidden="true" />
@@ -328,39 +347,37 @@ export default function LiveGamePage() {
                         ? isClaimed ? "Waiting for their entry" : "Not joined — the scorer enters this"
                         : source === "HOST" ? "Entered by the scorer" : "Entered by the player"}
                     </span>
-                    {phase === "TRICKS" && entry?.bid !== undefined && (
+                    {phase === "TRICKS" && !isHost && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
                     )}
                     {entry?.punished && <span className="mt-0.5 block text-xs font-semibold text-[var(--danger)]">Disqualified</span>}
                   </span>
 
-                  {canEdit ? (
-                    <input
-                      className="input-base score-number max-w-20 text-center text-lg font-semibold"
-                      type="number"
-                      inputMode="numeric"
-                      min={field === "bid" ? 1 : 0}
-                      max={13}
-                      step={1}
-                      aria-label={`${player.name} ${field === "bid" ? "call" : "tricks won"}`}
-                      disabled={busyKey === key}
-                      value={displayValue(player, field)}
-                      onChange={(event) => setDrafts((current) => ({ ...current, [key]: event.target.value }))}
-                      onBlur={(event) => void saveEntry(player.id, field, event.target.value)}
-                      onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
-                    />
+                  {isHost ? (
+                    <span className="flex flex-shrink-0 items-end gap-2">
+                      <label className="flex flex-col items-center">
+                        <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Call</span>
+                        {entryInput(player, "bid")}
+                      </label>
+                      <label className="flex flex-col items-center">
+                        <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Tricks</span>
+                        {entryInput(player, "tricksWon")}
+                      </label>
+                    </span>
+                  ) : canEdit ? (
+                    entryInput(player, field)
                   ) : (
                     <span className="score-number w-20 text-center text-lg font-bold">{value ?? "—"}</span>
                   )}
 
-                  {isHost && phase === "TRICKS" && (
+                  {isHost && (
                     <button
-                      className="text-xs font-semibold text-[var(--muted)] underline hover:text-[var(--danger)]"
+                      className="basis-full text-left text-xs font-semibold text-[var(--muted)] underline hover:text-[var(--danger)]"
                       type="button"
                       disabled={busyKey === `${player.id}:punished`}
                       onClick={() => void toggleDisqualified(player.id, !entry?.punished)}
                     >
-                      {entry?.punished ? "Undo" : "Disqualify"}
+                      {entry?.punished ? "Undo disqualification" : "Disqualify"}
                     </button>
                   )}
                 </div>
@@ -480,18 +497,18 @@ export default function LiveGamePage() {
           </nav>
         )}
 
-        {isHost && game.status === GameStatus.ACTIVE && (
+        {isHost && (
           <section className="mt-8 border-t border-[var(--border)] pt-5">
-            <p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Abandon game</p>
+            <p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Delete game</p>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Stop scoring and discard this game. Every round recorded so far is deleted and followers lose access to the game code.
+              Discard this game entirely. Every round recorded so far is deleted and followers lose access to the game code.
             </p>
             <button
               className="btn mt-4 border-[var(--danger-border)] bg-[var(--danger-surface)] text-[var(--danger-text)] hover:bg-[var(--danger)] hover:text-white focus-visible:ring-[var(--danger)]"
               type="button"
               onClick={() => { setError(null); setShowAbandonDialog(true); }}
             >
-              <Trash2 size={18} /> Abandon game
+              <Trash2 size={18} /> Delete game
             </button>
           </section>
         )}
@@ -499,15 +516,15 @@ export default function LiveGamePage() {
         {showAbandonDialog && (
           <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/30 px-4 pb-4 sm:items-center" role="presentation">
             <div className="card w-full max-w-sm" role="dialog" aria-modal="true" aria-labelledby="abandon-game-title">
-              <h2 id="abandon-game-title" className="font-display text-2xl font-bold">Abandon this game?</h2>
+              <h2 id="abandon-game-title" className="font-display text-2xl font-bold">Delete this game?</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                {revealedRounds.length} of {game.rules.rounds} rounds have been scored. Abandoning deletes them permanently and cannot be undone.
+                {revealedRounds.length} of {game.rules.rounds} rounds have been scored. Deleting removes them permanently and cannot be undone.
               </p>
               {error && <p role="alert" className="status-alert mt-4">{error}</p>}
               <div className="mt-6 flex justify-end gap-3">
-                <button className="btn-secondary" type="button" disabled={isAbandoning} onClick={() => setShowAbandonDialog(false)}>Keep scoring</button>
+                <button className="btn-secondary" type="button" disabled={isAbandoning} onClick={() => setShowAbandonDialog(false)}>Keep game</button>
                 <button className="btn-danger" type="button" disabled={isAbandoning} onClick={() => void abandonGame()}>
-                  {isAbandoning ? "Abandoning…" : "Abandon game"}
+                  {isAbandoning ? "Deleting…" : "Delete game"}
                 </button>
               </div>
             </div>

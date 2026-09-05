@@ -232,8 +232,8 @@ can watch.
 
 | Role     | Credential                    | Can do                                             |
 |----------|-------------------------------|----------------------------------------------------|
-| `HOST`   | `X-Host-Token` header         | Enter or correct any value, score, punish, delete  |
-| `PLAYER` | `X-Session-Id` header         | Enter their own call and their own tricks          |
+| `HOST`   | `X-Host-Token` header         | Enter or correct any value for any seat at any time, score, punish, delete |
+| `PLAYER` | `X-Session-Id` header         | Enter their own call and their own tricks, once each |
 | `VIEWER` | none (code only)              | Follow along, read-only                            |
 
 - The **host token** is issued once at creation and stored in `localStorage`
@@ -254,9 +254,13 @@ server, never held in the browser:
 3. `COMPLETED` — the host presses *Score round*. The backend recomputes every score from the
    stored entries and enforces the 13-trick rule.
 
+The two steps constrain players, not the host: a player cannot enter tricks before every call is
+in, while the host sees a call and a tricks field for all four seats from the start and may fill
+a seat in one pass.
+
 **Who wins a conflict.** A player's call stands once made — resubmitting is rejected. The host
-may overwrite any value at any time before the round is scored. Every value records whether a
-player or the host supplied it, and the UI says so.
+may overwrite any value at any time before the round is scored, and may delete the game at any
+time. Every value records whether a player or the host supplied it, and the UI says so.
 
 **Visibility.** Calls and tricks are shared with everyone following the game as soon as they are
 entered, mirroring a real table where calls are announced aloud. Only values nobody has entered
