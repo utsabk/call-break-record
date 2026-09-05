@@ -307,29 +307,6 @@ export default function LiveGamePage() {
           </span>
         </div>
 
-        <div className="surface-tint mt-5 flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <p className="eyebrow">Game code</p>
-            <p className="score-number text-xl font-bold tracking-[0.16em] text-[var(--primary)]">{game.gameCode}</p>
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <button className="btn-secondary min-h-10 px-3 py-2 text-sm" type="button" onClick={() => { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }}>
-              <Copy size={15} /> {copied ? "Copied" : "Copy"}
-            </button>
-            <button
-              className="btn-secondary min-h-10 px-3 py-2 text-sm"
-              type="button"
-              onClick={() => {
-                const text = `Join my Call Break game with code ${game.gameCode}`;
-                if (navigator.share) void navigator.share({ title: "Call Break", text }).catch(() => undefined);
-                else { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }
-              }}
-            >
-              <Share2 size={15} /> Share
-            </button>
-          </div>
-        </div>
-
         {game.status !== GameStatus.ACTIVE && (
           <section className="card mt-6 text-center">
             <Trophy className="mx-auto text-[var(--gold)]" />
@@ -548,6 +525,32 @@ export default function LiveGamePage() {
               )}
             </div>
           </nav>
+        )}
+
+        {isHost && (
+          <section className="mt-8 border-t border-[var(--border)] pt-5">
+            <p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Game code</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Share this with anyone who should play or follow along.</p>
+            <div className="surface-tint mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <p className="score-number text-xl font-bold tracking-[0.16em] text-[var(--primary)]">{game.gameCode}</p>
+              <div className="flex shrink-0 gap-2">
+                <button className="btn-secondary min-h-10 px-3 py-2 text-sm" type="button" onClick={() => { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }}>
+                  <Copy size={15} /> {copied ? "Copied" : "Copy"}
+                </button>
+                <button
+                  className="btn-secondary min-h-10 px-3 py-2 text-sm"
+                  type="button"
+                  onClick={() => {
+                    const text = `Join my Call Break game with code ${game.gameCode}`;
+                    if (navigator.share) void navigator.share({ title: "Call Break", text }).catch(() => undefined);
+                    else { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }
+                  }}
+                >
+                  <Share2 size={15} /> Share
+                </button>
+              </div>
+            </div>
+          </section>
         )}
 
         {isHost && (
