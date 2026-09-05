@@ -14,6 +14,12 @@ const dynamodb = new DynamoDB.DocumentClient({
 });
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE || "CallBreakGames";
+const GAME_RETENTION_HOURS = 24;
+
+/** DynamoDB TTL expects epoch seconds; games are purged a day after they are created. */
+function expiresAt(from: Date = new Date()): number {
+  return Math.floor(from.getTime() / 1000) + GAME_RETENTION_HOURS * 60 * 60;
+}
 
 export interface IGameRepository {
   createGame(game: StoredGame): Promise<void>;
@@ -45,6 +51,7 @@ export class DynamoDBGameRepository implements IGameRepository {
             players: game.players,
             rules: game.rules,
             rounds: game.rounds,
+            expiresAt: expiresAt(game.createdAt),
           },
         })
         .promise();
@@ -63,6 +70,8 @@ export class DynamoDBGameRepository implements IGameRepository {
             PK: `GAME#${gameId}`,
             SK: `METADATA#${gameId}`,
           },
+          // A game read straight after a round is saved must never be a stale copy.
+          ConsistentRead: true,
         })
         .promise();
 
@@ -87,20 +96,23 @@ export class DynamoDBGameRepository implements IGameRepository {
     }
   }
 
+  /**
+   * The index only resolves the code to an id. Round and status data is then read from the
+   * base table, because a global secondary index lags behind writes and would otherwise serve
+   * a finished game as though it were still in progress.
+   */
   async getGameByCode(gameCode: string): Promise<Game | null> {
     const result = await dynamodb.query({
       TableName: TABLE_NAME,
       IndexName: "GameCodeIndex",
       KeyConditionExpression: "gameCode = :gameCode",
       ExpressionAttributeValues: { ":gameCode": gameCode },
+      ProjectionExpression: "gameId",
       Limit: 1,
     }).promise();
-    const item = result.Items?.[0];
-    if (!item) return null;
-    return {
-      id: item.gameId, gameCode: item.gameCode, players: item.players, rules: item.rules,
-      rounds: item.rounds, status: item.status, createdAt: new Date(item.createdAt), updatedAt: new Date(item.updatedAt),
-    };
+    const gameId = result.Items?.[0]?.gameId;
+    if (typeof gameId !== "string") return null;
+    return this.getGame(gameId);
   }
 
   async getHostToken(gameId: string): Promise<string | null> {
@@ -159,6 +171,7 @@ export class DynamoDBGameRepository implements IGameRepository {
           playerId,
           sessionId,
           claimedAt: new Date().toISOString(),
+          expiresAt: expiresAt(),
         },
         ConditionExpression: "attribute_not_exists(PK) OR sessionId = :sessionId",
         ExpressionAttributeValues: { ":sessionId": sessionId },
@@ -194,6 +207,7 @@ export class DynamoDBGameRepository implements IGameRepository {
         SK: `SESSION#${session.sessionId}`,
         ...session,
         createdAt: new Date().toISOString(),
+        expiresAt: expiresAt(),
       },
     }).promise();
   }
@@ -225,6 +239,7 @@ export class DynamoDBGameRepository implements IGameRepository {
         bid: submission.bid,
         tricksWon: submission.tricksWon,
         submittedAt: submission.submittedAt.toISOString(),
+        expiresAt: expiresAt(),
       },
     }).promise();
   }

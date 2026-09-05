@@ -43,6 +43,8 @@ export class CallBreakStack extends cdk.Stack {
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      // Games are disposable; DynamoDB purges every item a day after the game was created.
+      timeToLiveAttribute: "expiresAt",
       removalPolicy:
         environment === "prod" ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
       pointInTimeRecovery: environment === "prod",
@@ -99,6 +101,26 @@ export class CallBreakStack extends cdk.Stack {
 
     this.frontendBucket.grantRead(originAccessIdentity);
 
+    /**
+     * The export writes every route as `<route>/index.html`, but S3 behind an origin access
+     * identity serves no directory index. Without this rewrite a direct load of `/game/results/`
+     * 404s and the error mapping below silently returns the home page instead.
+     */
+    const directoryIndexRewrite = new cloudfront.Function(this, "DirectoryIndexRewrite", {
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  if (uri.endsWith('/')) {
+    request.uri = uri + 'index.html';
+  } else if (!uri.includes('.')) {
+    request.uri = uri + '/index.html';
+  }
+  return request;
+}
+`),
+    });
+
     this.distribution = new cloudfront.Distribution(
       this,
       "FrontendDistributionV2",
@@ -110,6 +132,12 @@ export class CallBreakStack extends cdk.Stack {
           viewerProtocolPolicy:
             cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          functionAssociations: [
+            {
+              function: directoryIndexRewrite,
+              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
         },
         defaultRootObject: "index.html",
         ...(props?.domainName && props?.certificate
