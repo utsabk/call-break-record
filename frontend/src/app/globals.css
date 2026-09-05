@@ -186,6 +186,11 @@ body {
   padding: 0.625rem 0.75rem;
 }
 
+/* Table rows cannot use .rank-row, which is a flex container, but want the same edge. */
+.rank-edge {
+  border-left: 3px solid transparent;
+}
+
 .rank-1 { background: var(--rank-1-bg); border-left-color: var(--gold); }
 .rank-2 { background: var(--rank-2-bg); border-left-color: var(--rank-2-edge); }
 .rank-3 { background: var(--rank-3-bg); border-left-color: var(--rank-3-edge); }

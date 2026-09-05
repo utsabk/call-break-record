@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Clock, Copy, Eye, Loader2, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
+import { Check, Clock, Copy, Eye, Loader2, MoreHorizontal, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
   GameStatus,
   GameView,
@@ -17,6 +17,8 @@ import { apiGameRepository, forgetGameCode, getGameSession, getHostToken } from 
 
 type Connection = "LIVE" | "RECONNECTING" | "OFFLINE";
 type EntryField = "bid" | "tricksWon";
+
+const MEDALS = ["🥇", "🥈", "🥉", "4️⃣"];
 
 function formatScore(scoreTenths: number): string {
   const sign = scoreTenths >= 0 ? "+" : "-";
@@ -51,6 +53,7 @@ export default function LiveGamePage() {
   const [copied, setCopied] = useState(false);
   const [selectedRoundNumber, setSelectedRoundNumber] = useState<number | null>(null);
   const [punishmentPlayerId, setPunishmentPlayerId] = useState<string | null>(null);
+  const [actionsForPlayerId, setActionsForPlayerId] = useState<string | null>(null);
   const [punishmentReason, setPunishmentReason] = useState(PunishmentReason.WRONG_CARD);
   const [showAbandonDialog, setShowAbandonDialog] = useState(false);
   const [isAbandoning, setIsAbandoning] = useState(false);
@@ -305,21 +308,6 @@ export default function LiveGamePage() {
           )}
         </div>
 
-        {standings.length > 0 && revealedRounds.length > 0 && (
-          <div className="card mt-5 p-4">
-            <p className="eyebrow">Standings</p>
-            <ol className="mt-3 space-y-1.5">
-              {standings.map((entry) => (
-                <li key={entry.playerId} className={`rank-row ${typeof entry.rank === "number" ? `rank-${entry.rank}` : ""}`}>
-                  <span className="font-bold text-[var(--gold)]">{entry.rank}</span>
-                  <span className="min-w-0 flex-1 truncate font-semibold">{entry.playerName}</span>
-                  <span className="score-number font-bold">{formatScore(entry.totalScoreTenths)}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
         {!selectedRound.revealed && !isViewingHistory && (
           <section className="card mt-6 space-y-4">
             {game.players.map((player) => {
@@ -372,13 +360,27 @@ export default function LiveGamePage() {
 
                   {isHost && (
                     <button
-                      className="basis-full text-left text-xs font-semibold text-[var(--muted)] underline hover:text-[var(--danger)]"
+                      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                       type="button"
-                      disabled={busyKey === `${player.id}:punished`}
-                      onClick={() => void toggleDisqualified(player.id, !entry?.punished)}
+                      aria-label={`More actions for ${player.name}`}
+                      aria-expanded={actionsForPlayerId === player.id}
+                      onClick={() => setActionsForPlayerId(actionsForPlayerId === player.id ? null : player.id)}
                     >
-                      {entry?.punished ? "Undo disqualification" : "Disqualify"}
+                      <MoreHorizontal size={18} />
                     </button>
+                  )}
+
+                  {isHost && actionsForPlayerId === player.id && (
+                    <div className="basis-full">
+                      <button
+                        className="text-sm font-semibold text-[var(--muted)] underline hover:text-[var(--danger)]"
+                        type="button"
+                        disabled={busyKey === `${player.id}:punished`}
+                        onClick={() => { void toggleDisqualified(player.id, !entry?.punished); setActionsForPlayerId(null); }}
+                      >
+                        {entry?.punished ? "Undo disqualification" : "Disqualify this player"}
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -452,26 +454,33 @@ export default function LiveGamePage() {
         )}
 
         {revealedRounds.length > 0 && (
-          <section className="card mt-6">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Scoreboard</h2>
+          <section className="card mt-6 overflow-x-auto">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Standings</h2>
             <table className="mt-3 w-full text-left">
-              <caption className="sr-only">Scores for each completed round</caption>
+              <caption className="sr-only">Ranking and round-by-round scores</caption>
               <thead>
                 <tr className="text-xs uppercase text-[var(--muted)]">
+                  <th scope="col" className="py-1 pl-2">Rank</th>
                   <th scope="col" className="py-1">Player</th>
                   {revealedRounds.map((round) => <th scope="col" key={round.roundNumber} className="py-1 text-right">R{round.roundNumber}</th>)}
-                  <th scope="col" className="py-1 text-right">Total</th>
+                  <th scope="col" className="py-1 pr-2 text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {game.players.map((player) => (
-                  <tr key={player.id} className="border-t border-[var(--border)]">
-                    <th scope="row" className="py-2 font-semibold">{player.name}</th>
+                {standings.map((standing, index) => (
+                  <tr
+                    key={standing.playerId}
+                    className={`border-t border-[var(--border)] ${typeof standing.rank === "number" ? `rank-edge rank-${standing.rank}` : ""}`}
+                  >
+                    <td className="py-2 pl-2 font-bold text-[var(--gold)]">
+                      <span aria-hidden="true">{MEDALS[index] ?? ""}</span> {standing.rank}
+                    </td>
+                    <th scope="row" className="max-w-32 truncate py-2 font-semibold">{standing.playerName}</th>
                     {revealedRounds.map((round) => {
-                      const entry = round.players.find((candidate) => candidate.playerId === player.id);
-                      return <td key={round.roundNumber} className="score-number py-2 text-right">{entry ? formatScore(entry.scoreTenths) : "—"}</td>;
+                      const scored = round.players.find((candidate) => candidate.playerId === standing.playerId);
+                      return <td key={round.roundNumber} className="score-number py-2 text-right">{scored ? formatScore(scored.scoreTenths) : "—"}</td>;
                     })}
-                    <td className="score-number py-2 text-right font-bold">{formatScore(totals[player.id] ?? 0)}</td>
+                    <td className="score-number py-2 pr-2 text-right font-bold">{formatScore(standing.totalScoreTenths)}</td>
                   </tr>
                 ))}
               </tbody>
