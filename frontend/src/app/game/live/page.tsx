@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Clock, Copy, Eye, Loader2, MoreHorizontal, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
+import { Check, Clock, Copy, Eye, Loader2, MoreHorizontal, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
   GameStatus,
   GameView,
@@ -68,6 +68,9 @@ export default function LiveGamePage() {
   const [punishmentReason, setPunishmentReason] = useState(PunishmentReason.WRONG_CARD);
   const [showAbandonDialog, setShowAbandonDialog] = useState(false);
   const [isAbandoning, setIsAbandoning] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const pollDelayRef = useRef(ACTIVE_POLL_MS);
   const signatureRef = useRef("");
   const idlePollsRef = useRef(0);
@@ -118,6 +121,24 @@ export default function LiveGamePage() {
       document.removeEventListener("visibilitychange", refreshNow);
     };
   }, [gameCode, refresh]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnOutside = (event: PointerEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setMenuOpen(false);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menuOpen]);
 
   if (notFound) {
     return (
@@ -295,16 +316,67 @@ export default function LiveGamePage() {
           <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--primary)]" href="/">
             <Spade size={16} fill="currentColor" /> Home
           </Link>
-          <span className="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            <span className="inline-flex items-center gap-1">
-              {isWatcher ? <Eye size={14} aria-hidden="true" /> : null}
-              {roleLabel}
+          <div className="flex items-center gap-1">
+            <span className="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              <span className="inline-flex items-center gap-1">
+                {isWatcher ? <Eye size={14} aria-hidden="true" /> : null}
+                {roleLabel}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Radio size={14} aria-hidden="true" className={connection === "LIVE" ? "text-[var(--success)]" : "text-[var(--warning)]"} />
+                {connection === "LIVE" ? "Live" : connection === "RECONNECTING" ? "Reconnecting…" : "Offline"}
+              </span>
             </span>
-            <span className="inline-flex items-center gap-1">
-              <Radio size={14} aria-hidden="true" className={connection === "LIVE" ? "text-[var(--success)]" : "text-[var(--warning)]"} />
-              {connection === "LIVE" ? "Live" : connection === "RECONNECTING" ? "Reconnecting…" : "Offline"}
-            </span>
-          </span>
+
+            {isHost && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  ref={menuButtonRef}
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  type="button"
+                  aria-label="Game options"
+                  aria-expanded={menuOpen}
+                  aria-controls="game-menu"
+                  onClick={() => setMenuOpen((open) => !open)}
+                >
+                  <MoreVertical size={20} />
+                </button>
+
+                {menuOpen && (
+                  <div id="game-menu" role="group" aria-label="Game options" className="card absolute right-0 top-12 z-20 w-72 p-4 text-left">
+                    <p className="eyebrow">Game code</p>
+                    <p className="score-number mt-1 text-xl font-bold tracking-[0.16em] text-[var(--primary)]">{game.gameCode}</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">Share this with anyone who should play or follow along.</p>
+                    <div className="mt-3 flex gap-2">
+                      <button className="btn-secondary min-h-10 flex-1 px-3 py-2 text-sm" type="button" onClick={() => { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }}>
+                        <Copy size={15} /> {copied ? "Copied" : "Copy"}
+                      </button>
+                      <button
+                        className="btn-secondary min-h-10 flex-1 px-3 py-2 text-sm"
+                        type="button"
+                        onClick={() => {
+                          const text = `Join my Call Break game with code ${game.gameCode}`;
+                          if (navigator.share) void navigator.share({ title: "Call Break", text }).catch(() => undefined);
+                          else { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }
+                        }}
+                      >
+                        <Share2 size={15} /> Share
+                      </button>
+                    </div>
+                    <div className="mt-4 border-t border-[var(--border)] pt-4">
+                      <button
+                        className="btn w-full border-[var(--danger-border)] bg-[var(--danger-surface)] text-[var(--danger-text)] hover:bg-[var(--danger)] hover:text-white focus-visible:ring-[var(--danger)]"
+                        type="button"
+                        onClick={() => { setMenuOpen(false); setError(null); setShowAbandonDialog(true); }}
+                      >
+                        <Trash2 size={18} /> Delete game
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {game.status !== GameStatus.ACTIVE && (
@@ -525,48 +597,6 @@ export default function LiveGamePage() {
               )}
             </div>
           </nav>
-        )}
-
-        {isHost && (
-          <section className="mt-8 border-t border-[var(--border)] pt-5">
-            <p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Game code</p>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Share this with anyone who should play or follow along.</p>
-            <div className="surface-tint mt-3 flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-              <p className="score-number text-xl font-bold tracking-[0.16em] text-[var(--primary)]">{game.gameCode}</p>
-              <div className="flex shrink-0 gap-2">
-                <button className="btn-secondary min-h-10 px-3 py-2 text-sm" type="button" onClick={() => { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }}>
-                  <Copy size={15} /> {copied ? "Copied" : "Copy"}
-                </button>
-                <button
-                  className="btn-secondary min-h-10 px-3 py-2 text-sm"
-                  type="button"
-                  onClick={() => {
-                    const text = `Join my Call Break game with code ${game.gameCode}`;
-                    if (navigator.share) void navigator.share({ title: "Call Break", text }).catch(() => undefined);
-                    else { void navigator.clipboard.writeText(game.gameCode); setCopied(true); }
-                  }}
-                >
-                  <Share2 size={15} /> Share
-                </button>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {isHost && (
-          <section className="mt-8 border-t border-[var(--border)] pt-5">
-            <p className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Delete game</p>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              Discard this game entirely. Every round recorded so far is deleted and followers lose access to the game code.
-            </p>
-            <button
-              className="btn mt-4 border-[var(--danger-border)] bg-[var(--danger-surface)] text-[var(--danger-text)] hover:bg-[var(--danger)] hover:text-white focus-visible:ring-[var(--danger)]"
-              type="button"
-              onClick={() => { setError(null); setShowAbandonDialog(true); }}
-            >
-              <Trash2 size={18} /> Delete game
-            </button>
-          </section>
         )}
 
         {showAbandonDialog && (
