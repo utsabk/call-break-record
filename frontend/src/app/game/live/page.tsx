@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Copy, Eye, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
+import { CircleDollarSign, Copy, Eye, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
   GameStatus,
   GameView,
@@ -188,10 +188,6 @@ export default function LiveGamePage() {
   );
   const standings = calculateRankings(game.players, totals);
 
-  const entered = game.players.filter((player) => valueOf(entryOf(liveRound, player.id), field) !== undefined).length;
-  const progressValue = selectedRound.revealed ? game.players.length : entered;
-  const progressState = progressValue === 0 ? "empty" : progressValue === game.players.length ? "complete" : "partial";
-  const progressLabel = phase === "BIDDING" ? "calls" : "tricks";
   const trickTotal = game.players.reduce((sum, player) => sum + (entryOf(liveRound, player.id)?.tricksWon ?? 0), 0);
   const allTricksIn = game.players.every((player) => entryOf(liveRound, player.id)?.tricksWon !== undefined);
   const canScoreRound = phase === "TRICKS" && allTricksIn && trickTotal === 13;
@@ -274,6 +270,8 @@ export default function LiveGamePage() {
       const updated = await apiGameRepository.completeRound(gameCode, game.id, liveRound.roundNumber);
       setGame(updated);
       setSelectedRoundNumber(null);
+      setShowPenaltyTools(false);
+      setPunishmentPlayerId(null);
       if (updated.rounds.every((round) => round.revealed)) {
         await apiGameRepository.completeGame(updated.id);
         window.location.assign(`/game/results/?code=${updated.gameCode}`);
@@ -395,19 +393,13 @@ export default function LiveGamePage() {
             <h1 className="relative font-display text-3xl font-black sm:text-4xl">
               {selectedRound.revealed ? "Round complete" : phase === "BIDDING" ? "Calls" : "Tricks"}
             </h1>
-            <span className="round-status-badge"><Spade size={13} fill="currentColor" /> {selectedRound.roundNumber}/{game.rules.rounds}</span>
+            <span className="round-status-badge"><Spade size={13} fill="currentColor" /> Round {selectedRound.roundNumber}/{game.rules.rounds}</span>
           </div>
-          {!selectedRound.revealed && (
-            <div className="progress-badge mt-3" data-progress={progressState} style={{ "--progress": `${(progressValue / game.players.length) * 100}%` } as React.CSSProperties} aria-live="polite">
-              <span className="score-number text-sm">{progressValue}/{game.players.length}</span>
-              <span>{progressLabel} in</span>
-            </div>
-          )}
         </div>
 
         {!selectedRound.revealed && !isViewingHistory && (
           <section className="panel mt-4 space-y-3">
-            {isHost && (
+            {isHost && phase === "TRICKS" && (
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Players</p>
                 <button
@@ -416,11 +408,11 @@ export default function LiveGamePage() {
                   aria-expanded={showPenaltyTools}
                   onClick={() => setShowPenaltyTools((open) => !open)}
                 >
-                  <Trash2 size={14} /> Penalty
+                  <CircleDollarSign size={14} /> Penalty
                 </button>
               </div>
             )}
-            {isHost && (
+            {isHost && phase === "TRICKS" && (
               <div className={showPenaltyTools ? "admin-action-strip" : "hidden"}>
                 <label className="min-w-0 flex-1">
                   <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Disqualify</span>
@@ -444,7 +436,7 @@ export default function LiveGamePage() {
                     setShowPenaltyTools(false);
                   }}
                 >
-                  <Trash2 size={16} /> Apply
+                  <CircleDollarSign size={16} /> Apply
                 </button>
               </div>
             )}

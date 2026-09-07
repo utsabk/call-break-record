@@ -299,16 +299,16 @@ body::before {
 
 .round-status-badge {
   display: inline-flex;
-  min-height: 1.9rem;
+  min-height: 2rem;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.35rem;
-  border: 1px solid var(--tint-border);
+  gap: 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--tint-border));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-elevated) 68%, transparent);
-  color: var(--muted);
-  padding: 0.28rem 0.55rem;
-  font-size: 0.72rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
   font-weight: 800;
 }
 
