@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Clock, Copy, Eye, Loader2, MoreHorizontal, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
+import { Copy, Eye, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
   GameStatus,
   GameView,
@@ -64,8 +64,8 @@ export default function LiveGamePage() {
   const [copied, setCopied] = useState(false);
   const [selectedRoundNumber, setSelectedRoundNumber] = useState<number | null>(null);
   const [punishmentPlayerId, setPunishmentPlayerId] = useState<string | null>(null);
-  const [actionsForPlayerId, setActionsForPlayerId] = useState<string | null>(null);
   const [punishmentReason, setPunishmentReason] = useState(PunishmentReason.WRONG_CARD);
+  const [showPenaltyTools, setShowPenaltyTools] = useState(false);
   const [showAbandonDialog, setShowAbandonDialog] = useState(false);
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -390,15 +390,12 @@ export default function LiveGamePage() {
           </section>
         )}
 
-        <div className="hero-panel round-summary mt-7">
+        <div className="hero-panel round-summary mt-5">
           <div className="round-card-header">
-            <div className="min-w-0">
-              <p className="kicker-pill"><Clock size={14} /> {selectedRound.revealed ? "Completed" : phase === "BIDDING" ? "Collect calls" : "Count tricks"}</p>
-              <h1 className="relative mt-3 font-display text-3xl font-black sm:text-4xl">
-                {selectedRound.revealed ? "Round complete" : phase === "BIDDING" ? "Calls" : "Tricks"}
-              </h1>
-            </div>
-            <span className="round-status-badge"><Spade size={14} fill="currentColor" /> Round {selectedRound.roundNumber} / {game.rules.rounds}</span>
+            <h1 className="relative font-display text-3xl font-black sm:text-4xl">
+              {selectedRound.revealed ? "Round complete" : phase === "BIDDING" ? "Calls" : "Tricks"}
+            </h1>
+            <span className="round-status-badge"><Spade size={13} fill="currentColor" /> {selectedRound.roundNumber}/{game.rules.rounds}</span>
           </div>
           {!selectedRound.revealed && (
             <div className="progress-badge mt-3" data-progress={progressState} style={{ "--progress": `${(progressValue / game.players.length) * 100}%` } as React.CSSProperties} aria-live="polite">
@@ -410,6 +407,48 @@ export default function LiveGamePage() {
 
         {!selectedRound.revealed && !isViewingHistory && (
           <section className="panel mt-4 space-y-3">
+            {isHost && (
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Players</p>
+                <button
+                  className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 text-xs font-bold text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  type="button"
+                  aria-expanded={showPenaltyTools}
+                  onClick={() => setShowPenaltyTools((open) => !open)}
+                >
+                  <Trash2 size={14} /> Penalty
+                </button>
+              </div>
+            )}
+            {isHost && (
+              <div className={showPenaltyTools ? "admin-action-strip" : "hidden"}>
+                <label className="min-w-0 flex-1">
+                  <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Disqualify</span>
+                  <select className="input-base min-h-11" value={punishmentPlayerId ?? ""} onChange={(event) => setPunishmentPlayerId(event.target.value || null)}>
+                    <option value="">Choose player</option>
+                    {game.players.map((player) => {
+                      const entry = entryOf(liveRound, player.id);
+                      return <option key={player.id} value={player.id}>{entry?.punished ? `Undo ${player.name}` : player.name}</option>;
+                    })}
+                  </select>
+                </label>
+                <button
+                  className="btn-secondary min-h-11 px-3 py-2 text-sm"
+                  type="button"
+                  disabled={!punishmentPlayerId || busyKey === `${punishmentPlayerId}:punished`}
+                  onClick={() => {
+                    if (!punishmentPlayerId) return;
+                    const entry = entryOf(liveRound, punishmentPlayerId);
+                    void toggleDisqualified(punishmentPlayerId, !entry?.punished);
+                    setPunishmentPlayerId(null);
+                    setShowPenaltyTools(false);
+                  }}
+                >
+                  <Trash2 size={16} /> Apply
+                </button>
+              </div>
+            )}
+
             {game.players.map((player) => {
               const entry = entryOf(liveRound, player.id);
               const value = valueOf(entry, field);
@@ -420,11 +459,6 @@ export default function LiveGamePage() {
 
               return (
                 <div key={player.id} className="compact-player-row" data-state={value === undefined ? "waiting" : "done"}>
-                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--surface-tint)]">
-                    {value === undefined
-                      ? <Clock size={18} className="text-[var(--muted)]" aria-hidden="true" />
-                      : <Check size={18} className="text-[var(--success)]" aria-hidden="true" />}
-                  </span>
                   <span className="min-w-0">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate font-display text-lg font-bold">
@@ -434,11 +468,8 @@ export default function LiveGamePage() {
                     </span>
                     <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
                       <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
-                      <span className="truncate">
-                      {value === undefined
-                        ? isClaimed ? "Waiting" : "Not joined"
-                        : source === "HOST" ? "Entered by the scorer" : "Entered by the player"}
-                      </span>
+                      {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
+                      {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
                     </span>
                     {phase === "TRICKS" && !isHost && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
@@ -447,14 +478,10 @@ export default function LiveGamePage() {
                   </span>
 
                   {isHost ? (
-                    <span className="entry-control-group">
+                    <span className="entry-control-group current-entry-control">
                       <label className="entry-control-label">
-                        <span>Call</span>
-                        {entryInput(player, "bid")}
-                      </label>
-                      <label className="entry-control-label">
-                        <span>Tricks</span>
-                        {entryInput(player, "tricksWon")}
+                        <span>{field === "bid" ? "Call" : "Tricks"}</span>
+                        {entryInput(player, field)}
                       </label>
                     </span>
                   ) : canEdit ? (
@@ -463,29 +490,6 @@ export default function LiveGamePage() {
                     <span className="score-number w-20 text-center text-lg font-bold">{value ?? "—"}</span>
                   )}
 
-                  {isHost && (
-                    <button
-                      className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
-                      type="button"
-                      aria-label={`More actions for ${player.name}`}
-                      aria-expanded={actionsForPlayerId === player.id}
-                      onClick={() => setActionsForPlayerId(actionsForPlayerId === player.id ? null : player.id)}
-                    >
-                      <MoreHorizontal size={18} />
-                    </button>
-                  )}
-
-                  {isHost && actionsForPlayerId === player.id && (
-                    <div className="row-action-popover">
-                      <button
-                        type="button"
-                        disabled={busyKey === `${player.id}:punished`}
-                        onClick={() => { void toggleDisqualified(player.id, !entry?.punished); setActionsForPlayerId(null); }}
-                      >
-                        {entry?.punished ? "Undo disqualification" : "Disqualify this player"}
-                      </button>
-                    </div>
-                  )}
                 </div>
               );
             })}

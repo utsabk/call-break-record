@@ -244,12 +244,12 @@ body::before {
 }
 
 .round-summary {
-  padding-block: 1rem;
+  padding-block: 0.9rem;
 }
 
 .round-summary::after {
-  height: 10rem;
-  width: 10rem;
+  height: 7rem;
+  width: 7rem;
 }
 
 .kicker-pill {
@@ -299,16 +299,16 @@ body::before {
 
 .round-status-badge {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: 1.9rem;
   flex-shrink: 0;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   border: 1px solid var(--tint-border);
   border-radius: 999px;
-  background: var(--surface-elevated);
-  color: var(--primary);
-  padding: 0.4rem 0.7rem;
-  font-size: 0.78rem;
+  background: color-mix(in srgb, var(--surface-elevated) 68%, transparent);
+  color: var(--muted);
+  padding: 0.28rem 0.55rem;
+  font-size: 0.72rem;
   font-weight: 800;
 }
 
@@ -358,15 +358,25 @@ body::before {
 .compact-player-row {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
   border: 1px solid var(--border);
   border-left: 3px solid var(--tint-border);
   border-radius: 0.65rem;
   background: linear-gradient(135deg, var(--surface-elevated), color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-tint)));
   padding: 0.65rem;
   box-shadow: var(--shadow-sm);
+}
+
+.admin-action-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  border: 1px dashed var(--tint-border);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--surface-tint) 58%, transparent);
+  padding: 0.75rem;
 }
 
 .compact-player-row[data-state="done"] {
@@ -407,6 +417,10 @@ body::before {
   gap: 0.4rem;
 }
 
+.current-entry-control .input-base {
+  width: 5.5rem;
+}
+
 .entry-control-label {
   display: grid;
   gap: 0.25rem;
@@ -432,15 +446,15 @@ body::before {
 
 @media (max-width: 520px) {
   .compact-player-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .entry-control-group {
-    grid-column: 2 / -1;
-    width: 100%;
+  .admin-action-strip {
+    align-items: stretch;
+    flex-direction: column;
   }
 
-  .entry-control-group .input-base {
+  .admin-action-strip .btn {
     width: 100%;
   }
 }
