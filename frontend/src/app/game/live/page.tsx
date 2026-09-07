@@ -189,6 +189,9 @@ export default function LiveGamePage() {
   const standings = calculateRankings(game.players, totals);
 
   const entered = game.players.filter((player) => valueOf(entryOf(liveRound, player.id), field) !== undefined).length;
+  const progressValue = selectedRound.revealed ? game.players.length : entered;
+  const progressState = progressValue === 0 ? "empty" : progressValue === game.players.length ? "complete" : "partial";
+  const progressLabel = phase === "BIDDING" ? "calls" : "tricks";
   const trickTotal = game.players.reduce((sum, player) => sum + (entryOf(liveRound, player.id)?.tricksWon ?? 0), 0);
   const allTricksIn = game.players.every((player) => entryOf(liveRound, player.id)?.tricksWon !== undefined);
   const canScoreRound = phase === "TRICKS" && allTricksIn && trickTotal === 13;
@@ -311,10 +314,10 @@ export default function LiveGamePage() {
 
   return (
     <main className="app-shell">
-      <div className="app-container max-w-2xl">
-        <div className="flex items-center justify-between">
-          <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--primary)]" href="/">
-            <Spade size={16} fill="currentColor" /> Home
+      <div className="app-container wide-container">
+        <div className="flex items-center justify-between gap-3">
+          <Link className="brand-mark" href="/">
+            <span className="brand-mark-icon"><Spade size={16} fill="currentColor" /></span> Home
           </Link>
           <div className="flex items-center gap-1">
             <span className="inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
@@ -332,7 +335,7 @@ export default function LiveGamePage() {
               <div className="relative" ref={menuRef}>
                 <button
                   ref={menuButtonRef}
-                  className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                  className="icon-button"
                   type="button"
                   aria-label="Game options"
                   aria-expanded={menuOpen}
@@ -343,7 +346,7 @@ export default function LiveGamePage() {
                 </button>
 
                 {menuOpen && (
-                  <div id="game-menu" role="group" aria-label="Game options" className="card absolute right-0 top-12 z-20 w-72 p-4 text-left">
+                  <div id="game-menu" role="group" aria-label="Game options" className="panel absolute right-0 top-12 z-20 w-72 p-4 text-left">
                     <p className="eyebrow">Game code</p>
                     <p className="score-number mt-1 text-xl font-bold tracking-[0.16em] text-[var(--primary)]">{game.gameCode}</p>
                     <p className="mt-1 text-xs leading-5 text-[var(--muted)]">Share this with anyone who should play or follow along.</p>
@@ -387,22 +390,26 @@ export default function LiveGamePage() {
           </section>
         )}
 
-        <div className="mt-8">
-          <p className="eyebrow">Round {selectedRound.roundNumber} of {game.rules.rounds}</p>
-          <h1 className="mt-2 font-display text-4xl font-bold">
-            {selectedRound.revealed ? "Round complete" : phase === "BIDDING" ? "Calls" : "Tricks"}
-          </h1>
+        <div className="hero-panel round-summary mt-7">
+          <div className="round-card-header">
+            <div className="min-w-0">
+              <p className="kicker-pill"><Clock size={14} /> {selectedRound.revealed ? "Completed" : phase === "BIDDING" ? "Collect calls" : "Count tricks"}</p>
+              <h1 className="relative mt-3 font-display text-3xl font-black sm:text-4xl">
+                {selectedRound.revealed ? "Round complete" : phase === "BIDDING" ? "Calls" : "Tricks"}
+              </h1>
+            </div>
+            <span className="round-status-badge"><Spade size={14} fill="currentColor" /> Round {selectedRound.roundNumber} / {game.rules.rounds}</span>
+          </div>
           {!selectedRound.revealed && (
-            <p className="mt-2 text-sm text-[var(--muted)]" aria-live="polite">
-              {phase === "BIDDING"
-                ? `${entered} of ${game.players.length} calls in.`
-                : `${game.players.filter((player) => entryOf(liveRound, player.id)?.tricksWon !== undefined).length} of ${game.players.length} trick counts in.`}
-            </p>
+            <div className="progress-badge mt-3" data-progress={progressState} style={{ "--progress": `${(progressValue / game.players.length) * 100}%` } as React.CSSProperties} aria-live="polite">
+              <span className="score-number text-sm">{progressValue}/{game.players.length}</span>
+              <span>{progressLabel} in</span>
+            </div>
           )}
         </div>
 
         {!selectedRound.revealed && !isViewingHistory && (
-          <section className="card mt-6 space-y-4">
+          <section className="panel mt-4 space-y-3">
             {game.players.map((player) => {
               const entry = entryOf(liveRound, player.id);
               const value = valueOf(entry, field);
@@ -412,21 +419,26 @@ export default function LiveGamePage() {
               const canEdit = isOwnRow && value === undefined;
 
               return (
-                <div key={player.id} className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
-                  <span className="flex-shrink-0">
+                <div key={player.id} className="compact-player-row" data-state={value === undefined ? "waiting" : "done"}>
+                  <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--surface-tint)]">
                     {value === undefined
                       ? <Clock size={18} className="text-[var(--muted)]" aria-hidden="true" />
                       : <Check size={18} className="text-[var(--success)]" aria-hidden="true" />}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">
+                  <span className="min-w-0">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate font-display text-lg font-bold">
                       {player.name}
+                      </span>
                       {isOwnRow && <span className="ml-2 text-xs font-bold uppercase text-[var(--primary)]">You</span>}
                     </span>
-                    <span className="mt-0.5 block text-xs text-[var(--muted)]">
+                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                      <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
+                      <span className="truncate">
                       {value === undefined
-                        ? isClaimed ? "Waiting for their entry" : "Not joined — the scorer enters this"
+                        ? isClaimed ? "Waiting" : "Not joined"
                         : source === "HOST" ? "Entered by the scorer" : "Entered by the player"}
+                      </span>
                     </span>
                     {phase === "TRICKS" && !isHost && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
@@ -435,13 +447,13 @@ export default function LiveGamePage() {
                   </span>
 
                   {isHost ? (
-                    <span className="flex flex-shrink-0 items-end gap-2">
-                      <label className="flex flex-col items-center">
-                        <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Call</span>
+                    <span className="entry-control-group">
+                      <label className="entry-control-label">
+                        <span>Call</span>
                         {entryInput(player, "bid")}
                       </label>
-                      <label className="flex flex-col items-center">
-                        <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-[var(--muted)]">Tricks</span>
+                      <label className="entry-control-label">
+                        <span>Tricks</span>
                         {entryInput(player, "tricksWon")}
                       </label>
                     </span>
@@ -453,7 +465,7 @@ export default function LiveGamePage() {
 
                   {isHost && (
                     <button
-                      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                      className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--surface-tint)] hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                       type="button"
                       aria-label={`More actions for ${player.name}`}
                       aria-expanded={actionsForPlayerId === player.id}
@@ -464,9 +476,8 @@ export default function LiveGamePage() {
                   )}
 
                   {isHost && actionsForPlayerId === player.id && (
-                    <div className="basis-full">
+                    <div className="row-action-popover">
                       <button
-                        className="text-sm font-semibold text-[var(--muted)] underline hover:text-[var(--danger)]"
                         type="button"
                         disabled={busyKey === `${player.id}:punished`}
                         onClick={() => { void toggleDisqualified(player.id, !entry?.punished); setActionsForPlayerId(null); }}
@@ -480,7 +491,7 @@ export default function LiveGamePage() {
             })}
 
             {phase === "TRICKS" && (
-              <div className={`flex items-center justify-between border-t border-[var(--border)] pt-4 text-sm font-bold ${trickTotal === 13 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>
+              <div className={`metric-tile flex items-center justify-between text-sm font-bold ${trickTotal === 13 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>
                 <span>Total tricks</span>
                 <span className="score-number" aria-live="polite">{trickTotal} / 13</span>
               </div>
@@ -510,12 +521,12 @@ export default function LiveGamePage() {
         )}
 
         {selectedRound.revealed && (
-          <section className="card mt-6 space-y-4">
+          <section className="panel mt-6 space-y-3">
             {game.players.map((player) => {
               const playerRound = selectedRound.players.find((candidate) => candidate.playerId === player.id);
               if (!playerRound) return null;
               return (
-                <div key={player.id} className="border-b border-[var(--border)] pb-4 last:border-0 last:pb-0">
+                <div key={player.id} className="player-row">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-semibold">{player.name}</p>
@@ -547,9 +558,12 @@ export default function LiveGamePage() {
         )}
 
         {revealedRounds.length > 0 && (
-          <section className="card mt-6 overflow-x-auto">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Standings</h2>
-            <table className="mt-3 w-full text-left">
+          <section className="panel mt-6 overflow-x-auto">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="kicker-pill">Standings</h2>
+              <span className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">{revealedRounds.length} rounds scored</span>
+            </div>
+            <table className="score-table mt-3 w-full text-left">
               <caption className="sr-only">Ranking and round-by-round scores</caption>
               <thead>
                 <tr className="text-xs uppercase text-[var(--muted)]">
@@ -563,7 +577,9 @@ export default function LiveGamePage() {
                 {standings.map((standing, index) => (
                   <tr
                     key={standing.playerId}
-                    className={`border-t border-[var(--border)] ${typeof standing.rank === "number" ? `rank-edge rank-${standing.rank}` : ""}`}
+                    className={typeof standing.rank === "number" ? `rank-edge rank-${standing.rank}` : ""}
+                    data-current={standing.playerId === ownPlayerId}
+                    data-leader={standing.rank === 1}
                   >
                     <td className="py-2 pl-2 font-bold text-[var(--gold)]">
                       <span aria-hidden="true">{MEDALS[index] ?? ""}</span> {standing.rank}
@@ -571,9 +587,9 @@ export default function LiveGamePage() {
                     <th scope="row" className="max-w-32 truncate py-2 font-semibold">{standing.playerName}</th>
                     {revealedRounds.map((round) => {
                       const scored = round.players.find((candidate) => candidate.playerId === standing.playerId);
-                      return <td key={round.roundNumber} className="score-number py-2 text-right">{scored ? formatScore(scored.scoreTenths) : "—"}</td>;
+                      return <td key={round.roundNumber} className={`score-number py-2 text-right ${scored && scored.scoreTenths < 0 ? "text-[var(--danger)]" : scored && scored.scoreTenths > 0 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>{scored ? formatScore(scored.scoreTenths) : "—"}</td>;
                     })}
-                    <td className="score-number py-2 pr-2 text-right font-bold">{formatScore(standing.totalScoreTenths)}</td>
+                    <td className={`score-number py-2 pr-2 text-right font-bold ${standing.totalScoreTenths < 0 ? "text-[var(--danger)]" : standing.totalScoreTenths > 0 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>{formatScore(standing.totalScoreTenths)}</td>
                   </tr>
                 ))}
               </tbody>

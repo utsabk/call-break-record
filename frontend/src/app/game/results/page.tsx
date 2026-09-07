@@ -34,21 +34,21 @@ export default function GameResultsPage() {
 
   return (
     <main className="app-shell">
-      <div className="app-container max-w-2xl">
+      <div className="app-container wide-container">
         <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--primary)]">
           <ArrowLeft size={18} /> Home
         </Link>
-        <header className="surface-tint mt-8 p-6">
+        <header className="hero-panel mt-8">
           <Trophy className="text-[var(--gold)]" size={32} />
-          <p className="eyebrow mt-5">Game complete</p>
-          <h1 className="mt-2 font-display text-3xl font-bold">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
-          <div className="final-base-bid mt-5">
+          <p className="kicker-pill relative mt-5">Game complete</p>
+          <h1 className="relative mt-4 font-display text-3xl font-black">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
+          <div className="final-base-bid relative mt-5">
             <span className="text-xs font-bold uppercase tracking-wide">Base bid</span>
             <span className="score-number text-2xl font-bold">{currentGame.rules.baseBid}</span>
           </div>
         </header>
 
-        <section className="card mt-6 overflow-hidden p-0">
+        <section className="panel mt-6 overflow-hidden p-0">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_5rem_5rem] gap-2 border-b border-[var(--border)] bg-[var(--surface-tint)] px-5 py-3 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
             <span>Rank</span><span>Player</span><span className="text-right">Score</span><span className="text-right">Settle</span>
           </div>
@@ -66,7 +66,7 @@ export default function GameResultsPage() {
           })}
         </section>
 
-        {settlement?.winnerBonusApplied && <p className="surface-tint mt-5 p-4 text-sm">🔥 {settlement.winner.playerName} finished on 20 or more, so every payment is doubled.</p>}
+        {settlement?.winnerBonusApplied && <p className="soft-panel mt-5 p-4 text-sm">🔥 {settlement.winner.playerName} finished on 20 or more, so every payment is doubled.</p>}
         {tied && <p className="status-alert mt-5">Settlement is not calculated while players are tied. Resolve the tie manually, then update the relevant round.</p>}
       </div>
     </main>

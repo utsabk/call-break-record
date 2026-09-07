@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowRight, Eye, Spade, Users } from "lucide-react";
+import { ArrowRight, Check, Eye, Spade, Users } from "lucide-react";
 import Link from "next/link";
 import { GameView, GameViewerRole } from "@call-break/shared";
 import { apiGameRepository } from "@/lib/repositories/ApiGameRepository";
@@ -46,16 +46,16 @@ export default function JoinGamePage() {
   return (
     <main className="app-shell">
       <div className="app-container max-w-md">
-        <Link className="text-sm font-semibold text-[var(--muted)]" href="/">Home</Link>
+        <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--primary)]" href="/"><Spade size={16} fill="currentColor" /> Home</Link>
 
         {!game && (
           <>
-            <header className="mt-10">
-              <Spade className="text-[var(--primary)]" fill="currentColor" />
-              <p className="eyebrow mt-5">Join game</p>
-              <h1 className="mt-2 font-display text-4xl font-bold">Enter game code</h1>
+            <header className="hero-panel mt-8">
+              <p className="kicker-pill"><Users size={14} /> Join game</p>
+              <h1 className="relative mt-5 font-display text-4xl font-black">Enter game code</h1>
+              <p className="relative mt-2 text-sm leading-6 text-[var(--muted)]">Join as your seat or watch the table live.</p>
             </header>
-            <form className="mt-8" onSubmit={findGame}>
+            <form className="panel mt-6" onSubmit={findGame}>
               <label className="block">
                 <span className="sr-only">Game code</span>
                 <input className="input-base score-number text-center text-2xl font-bold uppercase tracking-[0.2em]" maxLength={8} autoComplete="off" value={gameCode} onChange={(event) => setGameCode(event.target.value.toUpperCase())} />
@@ -67,12 +67,12 @@ export default function JoinGamePage() {
         )}
 
         {game && (
-          <section className="mt-10">
-            <p className="eyebrow">Game found</p>
+          <section className="panel mt-8">
+            <p className="kicker-pill"><Check size={14} /> Game found</p>
             <h1 className="mt-2 font-display text-3xl font-bold tracking-[0.15em]">{game.gameCode}</h1>
             <p className="mt-2 text-[var(--muted)]">Round {game.rounds.filter((round) => round.revealed).length + 1} of {game.rules.rounds}</p>
 
-            <fieldset className="card mt-6">
+            <fieldset className="soft-panel mt-6">
               <legend className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Choose your player</legend>
               <div className="mt-3 space-y-2">
                 {game.players.map((player) => {
