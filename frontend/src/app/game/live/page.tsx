@@ -191,11 +191,20 @@ export default function LiveGamePage() {
   );
   const standings = calculateRankings(game.players, totals);
 
-  const trickTotal = game.players.reduce((sum, player) => sum + (entryOf(liveRound, player.id)?.tricksWon ?? 0), 0);
-  const allTricksIn = game.players.every((player) => entryOf(liveRound, player.id)?.tricksWon !== undefined);
-  const canScoreRound = phase === "TRICKS" && allTricksIn && trickTotal === 13;
-
   const draftKey = (playerId: string, entryField: EntryField) => `${liveRound.roundNumber}:${playerId}:${entryField}`;
+
+  const effectiveValue = (playerId: string, entryField: EntryField): number | undefined => {
+    const key = draftKey(playerId, entryField);
+    if (!(key in drafts)) return valueOf(entryOf(liveRound, playerId), entryField);
+    const value = Number(drafts[key]);
+    const min = entryField === "bid" ? 1 : 0;
+    return drafts[key].trim() !== "" && Number.isInteger(value) && value >= min && value <= 13 ? value : undefined;
+  };
+
+  const allCallsIn = game.players.every((player) => effectiveValue(player.id, "bid") !== undefined);
+  const trickTotal = game.players.reduce((sum, player) => sum + (effectiveValue(player.id, "tricksWon") ?? 0), 0);
+  const allTricksIn = game.players.every((player) => effectiveValue(player.id, "tricksWon") !== undefined);
+  const canScoreRound = phase === "TRICKS" && allTricksIn && trickTotal === 13;
 
   const displayValue = (player: Player, entryField: EntryField): string => {
     const key = draftKey(player.id, entryField);
@@ -224,17 +233,17 @@ export default function LiveGamePage() {
     );
   };
 
-  const saveEntry = async (playerId: string, entryField: EntryField, raw: string) => {
+  const saveEntry = async (playerId: string, entryField: EntryField, raw: string): Promise<boolean> => {
     const key = draftKey(playerId, entryField);
     const value = Number(raw);
     const min = entryField === "bid" ? 1 : 0;
     if (raw.trim() === "" || !Number.isInteger(value) || value < min || value > 13) {
       setError(entryField === "bid" ? "A call must be a whole number between 1 and 13." : "Tricks must be a whole number between 0 and 13.");
-      return;
+      return false;
     }
     if (value === valueOf(entryOf(liveRound, playerId), entryField)) {
       setDrafts((current) => { const next = { ...current }; delete next[key]; return next; });
-      return;
+      return true;
     }
 
     setError(null);
@@ -247,11 +256,26 @@ export default function LiveGamePage() {
       setGame(updated);
       idlePollsRef.current = 0;
       setDrafts((current) => { const next = { ...current }; delete next[key]; return next; });
+      return true;
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save that entry.");
+      return false;
     } finally {
       setBusyKey(null);
     }
+  };
+
+  const commitDrafts = async (entryField: EntryField): Promise<boolean> => {
+    for (const player of game.players) {
+      const key = draftKey(player.id, entryField);
+      if (key in drafts && !await saveEntry(player.id, entryField, drafts[key])) return false;
+    }
+    return true;
+  };
+
+  const advanceToTricks = async () => {
+    if (!await commitDrafts("bid")) return;
+    setTricksEntryRoundNumber(liveRound.roundNumber);
   };
 
   const toggleDisqualified = async (playerId: string, punished: boolean) => {
@@ -267,6 +291,7 @@ export default function LiveGamePage() {
   };
 
   const scoreRound = async () => {
+    if (!await commitDrafts("tricksWon")) return;
     setError(null);
     setBusyKey("score");
     try {
@@ -498,11 +523,13 @@ export default function LiveGamePage() {
 
             {error && <p role="alert" className="status-alert">{error}</p>}
 
-            {field === "bid" && phase === "TRICKS" && (
+            {field === "bid" && (
               <button
                 className="btn-primary min-h-14 w-full"
                 type="button"
-                onClick={() => setTricksEntryRoundNumber(liveRound.roundNumber)}
+                disabled={!allCallsIn || busyKey !== null}
+                onPointerDown={(event) => event.preventDefault()}
+                onClick={() => void advanceToTricks()}
               >
                 Next <ArrowRight size={18} aria-hidden="true" />
               </button>
@@ -515,7 +542,7 @@ export default function LiveGamePage() {
                     The tricks add up to {trickTotal}, but a round has exactly 13. {trickTotal > 13 ? `Remove ${trickTotal - 13}` : `Add ${13 - trickTotal} more`} and try again.
                   </p>
                 )}
-                <button className="btn-primary min-h-14 w-full" type="button" disabled={!canScoreRound || busyKey === "score"} onClick={() => void scoreRound()}>
+                <button className="btn-primary min-h-14 w-full" type="button" disabled={!canScoreRound || busyKey !== null} onPointerDown={(event) => event.preventDefault()} onClick={() => void scoreRound()}>
                   {busyKey === "score" ? "Scoring…" : "Score round"}
                 </button>
               </>

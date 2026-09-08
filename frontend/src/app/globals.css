@@ -673,10 +673,10 @@ body::before {
   padding-top: 0.65rem;
 }
 
-.score-table tbody tr[data-leader="true"] td,
-.score-table tbody tr[data-leader="true"] th {
-  background: var(--rank-1-bg);
-}
+.score-table tbody tr.rank-1 > * { background: var(--rank-1-bg); }
+.score-table tbody tr.rank-2 > * { background: var(--rank-2-bg); }
+.score-table tbody tr.rank-3 > * { background: var(--rank-3-bg); }
+.score-table tbody tr.rank-4 > * { background: var(--rank-4-bg); }
 
 .score-table tbody tr[data-current="true"] td,
 .score-table tbody tr[data-current="true"] th {
@@ -702,15 +702,18 @@ body::before {
   padding: 0.625rem 0.75rem;
 }
 
-/* Table rows cannot use .rank-row, which is a flex container, but want the same edge. */
 .rank-edge {
-  border-left: 3px solid transparent;
+  --rank-edge-color: transparent;
 }
 
-.rank-1 { background: var(--rank-1-bg); border-left-color: var(--gold); }
-.rank-2 { background: var(--rank-2-bg); border-left-color: var(--rank-2-edge); }
-.rank-3 { background: var(--rank-3-bg); border-left-color: var(--rank-3-edge); }
-.rank-4 { background: var(--rank-4-bg); border-left-color: var(--rank-4-edge); }
+.score-table tbody tr.rank-edge > *:first-child {
+  border-left: 3px solid var(--rank-edge-color);
+}
+
+.rank-1 { --rank-edge-color: var(--gold); background: var(--rank-1-bg); border-left-color: var(--gold); }
+.rank-2 { --rank-edge-color: var(--rank-2-edge); background: var(--rank-2-bg); border-left-color: var(--rank-2-edge); }
+.rank-3 { --rank-edge-color: var(--rank-3-edge); background: var(--rank-3-bg); border-left-color: var(--rank-3-edge); }
+.rank-4 { --rank-edge-color: var(--rank-4-edge); background: var(--rank-4-bg); border-left-color: var(--rank-4-edge); }
 
 .final-base-bid {
   display: flex;
