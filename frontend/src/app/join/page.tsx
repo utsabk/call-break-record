@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowRight, Check, Eye, Spade, Users } from "lucide-react";
+import { ArrowRight, Check, Club, Eye, Spade, Users } from "lucide-react";
 import Link from "next/link";
 import { GameView, GameViewerRole } from "@call-break/shared";
 import { apiGameRepository } from "@/lib/repositories/ApiGameRepository";
@@ -46,12 +46,13 @@ export default function JoinGamePage() {
   return (
     <main className="app-shell">
       <div className="app-container max-w-md">
-        <Link className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--primary)]" href="/"><Spade size={16} fill="currentColor" /> Home</Link>
+        <Link className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold" href="/"><Spade size={16} fill="currentColor" /> Home</Link>
 
         {!game && (
           <>
             <header className="hero-panel mt-8">
-              <p className="kicker-pill"><Users size={14} /> Join game</p>
+              <span className="hero-card-corner" aria-hidden="true">A ♣</span>
+              <p className="kicker-pill"><Club size={14} fill="currentColor" /> Join game</p>
               <h1 className="relative mt-5 font-display text-4xl font-black">Enter game code</h1>
               <p className="relative mt-2 text-sm leading-6 text-[var(--muted)]">Join as your seat or watch the table live.</p>
             </header>

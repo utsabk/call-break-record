@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, History, MoreHorizontal, Plus, Spade, Users } from "lucide-react";
+import { ChevronRight, Club, Diamond, Heart, History, MoreHorizontal, Plus, Spade, Users } from "lucide-react";
 import { Game } from "@call-break/shared";
 import { apiGameRepository, forgetGameCode, getRememberedGameCodes } from "@/lib/repositories/ApiGameRepository";
 import { useGameStore } from "@/lib/hooks/useGameStore";
@@ -53,14 +53,39 @@ export default function Home() {
   };
 
   return (
-    <main className="app-shell">
+    <main className="app-shell home-shell">
       <div className="app-container wide-container">
-        <header className="brand-mark"><span className="brand-mark-icon"><Spade aria-hidden="true" size={18} fill="currentColor" /></span> CALL BREAK</header>
-        <section className="hero-panel mt-7">
-          <p className="kicker-pill"><Spade size={14} fill="currentColor" /> Scorekeeper</p>
-          <h1 className="relative mt-5 max-w-xl font-display text-4xl font-black leading-tight text-[var(--foreground)] sm:text-5xl">Keep score. Stay in the game.</h1>
-          <p className="relative mt-4 max-w-md text-base leading-7 text-[var(--muted)]">Create a table, share the code, and keep every call, trick and payout in sync.</p>
-          <div className="relative mt-7 flex gap-3"><Link href="/game/setup/" className="btn-primary flex-1 sm:flex-none"><Plus size={19} /> Create game</Link><Link href="/join/" className="btn-secondary flex-1 sm:flex-none"><Users size={19} /> Join game</Link></div>
+        <section className="home-hero" aria-labelledby="home-title">
+          <div className="suit-cards" aria-hidden="true">
+            <span className="suit-card suit-card-spade">
+              <span className="suit-card-corner"><strong>A</strong><Spade fill="currentColor" /></span>
+              <Spade className="suit-card-center" fill="currentColor" />
+              <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Spade fill="currentColor" /></span>
+            </span>
+            <span className="suit-card suit-card-heart">
+              <span className="suit-card-corner"><strong>A</strong><Heart fill="currentColor" /></span>
+              <Heart className="suit-card-center" fill="currentColor" />
+              <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Heart fill="currentColor" /></span>
+            </span>
+            <span className="suit-card suit-card-club">
+              <span className="suit-card-corner"><strong>A</strong><Club fill="currentColor" /></span>
+              <Club className="suit-card-center" fill="currentColor" />
+              <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Club fill="currentColor" /></span>
+            </span>
+            <span className="suit-card suit-card-diamond">
+              <span className="suit-card-corner"><strong>A</strong><Diamond fill="currentColor" /></span>
+              <Diamond className="suit-card-center" fill="currentColor" />
+              <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Diamond fill="currentColor" /></span>
+            </span>
+          </div>
+          <h1 id="home-title" className="home-title font-display">
+            <span>Call Break</span>
+            <small>Scorekeeper</small>
+          </h1>
+          <div className="home-actions">
+            <Link href="/game/setup/" className="btn-primary"><Plus size={19} /> Create game</Link>
+            <Link href="/join/" className="btn-secondary"><Users size={19} /> Join game</Link>
+          </div>
         </section>
 
         {/* Active Game */}
@@ -102,12 +127,6 @@ export default function Home() {
           </section>
         )}
 
-        {/* Empty State */}
-        {!isLoading && games.length === 0 && !activeGame && (
-          <div className="muted-empty">
-            <p className="font-display text-2xl font-bold">No games yet</p>
-          </div>
-        )}
         {deleteCandidate && <div className="fixed inset-0 z-10 flex items-end justify-center bg-black/30 px-4 pb-4 sm:items-center" role="presentation"><div className="card w-full max-w-sm" role="dialog" aria-modal="true" aria-labelledby="delete-game-title"><h2 id="delete-game-title" className="font-display text-2xl font-bold">Delete this game?</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">This game and its score history will be permanently removed.</p>{deleteError && <p role="alert" className="status-alert mt-4">{deleteError}</p>}<div className="mt-6 flex justify-end gap-3"><button className="btn-secondary" type="button" disabled={deletingId !== null} onClick={() => setDeleteCandidate(null)}>Cancel</button><button className="btn-danger" type="button" disabled={deletingId !== null} onClick={confirmDelete}>{deletingId ? "Deleting..." : "Delete"}</button></div></div></div>}
       </div>
     </main>

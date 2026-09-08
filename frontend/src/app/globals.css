@@ -175,6 +175,18 @@ body::before {
 .app-shell {
   min-height: 100vh;
   padding: 1.25rem 1rem 2rem;
+  background:
+    linear-gradient(rgba(15, 70, 43, 0.88), rgba(15, 70, 43, 0.94)),
+    repeating-linear-gradient(45deg, transparent 0 12px, rgba(255, 255, 255, 0.035) 12px 13px),
+    var(--primary);
+  color: white;
+}
+
+.app-shell .card,
+.app-shell .hero-panel,
+.app-shell .panel,
+.app-shell .soft-panel {
+  color: var(--foreground);
 }
 
 .app-container {
@@ -184,6 +196,140 @@ body::before {
 
 .wide-container {
   width: min(100%, 48rem);
+}
+
+.home-shell {
+  color: white;
+}
+
+.table-nav,
+.table-note {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.table-nav:hover {
+  color: white;
+}
+
+.home-hero {
+  display: grid;
+  min-height: 30rem;
+  place-items: center;
+  align-content: center;
+  gap: 2rem;
+  padding: 2.5rem 0 3rem;
+  color: white;
+  text-align: center;
+}
+
+.suit-cards {
+  position: relative;
+  width: min(100%, 23rem);
+  height: 12.5rem;
+}
+
+.suit-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 7.5rem;
+  aspect-ratio: 5 / 7;
+  border: 1px solid rgba(16, 28, 21, 0.16);
+  border-radius: 0.5rem;
+  background: #fffdf7;
+  box-shadow: 0 1.25rem 2.5rem rgba(5, 30, 17, 0.3);
+  transform-origin: 50% 110%;
+}
+
+.suit-card-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translate(-50%, -50%);
+}
+
+.suit-card-corner {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  display: grid;
+  justify-items: center;
+  font-family: var(--font-display), serif;
+  font-size: 1.05rem;
+  line-height: 0.85;
+}
+
+.suit-card-corner svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.suit-card-corner-bottom {
+  inset: auto 0.55rem 0.55rem auto;
+  transform: rotate(180deg);
+}
+
+.suit-card-spade {
+  color: #17231c;
+  transform: translate(-112%, -42%) rotate(-16deg);
+}
+
+.suit-card-heart {
+  color: #b22f38;
+  transform: translate(-72%, -51%) rotate(-6deg);
+}
+
+.suit-card-club {
+  color: #17231c;
+  transform: translate(-28%, -51%) rotate(6deg);
+}
+
+.suit-card-diamond {
+  color: #b22f38;
+  transform: translate(12%, -42%) rotate(16deg);
+}
+
+.home-title {
+  letter-spacing: 0;
+}
+
+.home-title span,
+.home-title small {
+  display: block;
+}
+
+.home-title span {
+  font-size: clamp(2.75rem, 12vw, 5rem);
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.home-title small {
+  margin-top: 0.75rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home-actions {
+  display: grid;
+  width: min(100%, 25rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.home-actions .btn-primary,
+.home-actions .btn-secondary {
+  width: 100%;
+}
+
+.home-shell #history > h2 {
+  color: white;
 }
 
 .eyebrow {
@@ -223,7 +369,7 @@ body::before {
 .hero-panel {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--tint-border);
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--tint-border));
   border-radius: 0.75rem;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 92%, transparent), color-mix(in srgb, var(--surface-tint) 85%, transparent)),
@@ -232,24 +378,23 @@ body::before {
   box-shadow: var(--shadow-md);
 }
 
-.hero-panel::after {
-  content: "";
+.hero-card-corner {
   position: absolute;
-  inset: auto -18% -36% auto;
-  width: 15rem;
-  height: 15rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(156, 116, 29, 0.18), transparent 68%);
+  inset: 0.85rem 1rem auto auto;
+  color: color-mix(in srgb, var(--foreground) 20%, transparent);
+  font-family: var(--font-display), serif;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0;
   pointer-events: none;
+}
+
+.hero-card-corner[data-red="true"] {
+  color: color-mix(in srgb, var(--danger) 28%, transparent);
 }
 
 .round-summary {
   padding-block: 0.9rem;
-}
-
-.round-summary::after {
-  height: 7rem;
-  width: 7rem;
 }
 
 .kicker-pill {

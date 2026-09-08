@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Trophy } from "lucide-react";
+import { ArrowLeft, Heart, Trophy } from "lucide-react";
 import Link from "next/link";
 import { calculateFinalSettlement, calculateGameTotals, calculateRankings, hasRankingTie } from "@call-break/shared";
 import { useGameStore } from "@/lib/hooks/useGameStore";
@@ -24,8 +24,8 @@ export default function GameResultsPage() {
     else setIsReady(true);
   }, [loadGame]);
 
-  if (!isReady || isLoading) return <main className="min-h-screen px-4 py-10"><p className="mx-auto max-w-xl text-[var(--muted)]">Loading results...</p></main>;
-  if (!currentGame) return <main className="min-h-screen px-4 py-10"><div className="mx-auto max-w-xl"><p role="alert" className="text-[var(--danger)]">{error || "Game not found."}</p><Link className="btn-secondary mt-5" href="/"><ArrowLeft size={18} /> Home</Link></div></main>;
+  if (!isReady || isLoading) return <main className="app-shell px-4 py-10"><p className="table-note mx-auto max-w-xl">Loading results...</p></main>;
+  if (!currentGame) return <main className="app-shell px-4 py-10"><div className="panel mx-auto max-w-xl"><p role="alert" className="text-[var(--danger)]">{error || "Game not found."}</p><Link className="btn-secondary mt-5" href="/"><ArrowLeft size={18} /> Home</Link></div></main>;
 
   const totals = calculateGameTotals(currentGame.rounds.flatMap((round) => round.players.map(({ playerId, scoreTenths }) => ({ playerId, scoreTenths }))));
   const rankings = calculateRankings(currentGame.players, totals);
@@ -35,12 +35,13 @@ export default function GameResultsPage() {
   return (
     <main className="app-shell">
       <div className="app-container wide-container">
-        <Link href="/" className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--primary)]">
+        <Link href="/" className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
           <ArrowLeft size={18} /> Home
         </Link>
         <header className="hero-panel mt-8">
+          <span className="hero-card-corner" data-red="true" aria-hidden="true">A ♥</span>
           <Trophy className="text-[var(--gold)]" size={32} />
-          <p className="kicker-pill relative mt-5">Game complete</p>
+          <p className="kicker-pill relative mt-5"><Heart size={14} fill="currentColor" /> Game complete</p>
           <h1 className="relative mt-4 font-display text-3xl font-black">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
           <div className="final-base-bid relative mt-5">
             <span className="text-xs font-bold uppercase tracking-wide">Base bid</span>

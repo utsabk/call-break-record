@@ -155,7 +155,7 @@ export default function LiveGamePage() {
   if (!game) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-md py-20 text-center text-[var(--muted)]">
+        <div className="app-container table-note max-w-md py-20 text-center">
           <Loader2 className="mx-auto animate-spin" aria-hidden="true" />
           <p className="mt-3">Loading game…</p>
         </div>
