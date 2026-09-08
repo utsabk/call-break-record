@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CircleDollarSign, Copy, Eye, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Copy, Eye, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
   GameStatus,
   GameView,
@@ -69,6 +69,7 @@ export default function LiveGamePage() {
   const [showAbandonDialog, setShowAbandonDialog] = useState(false);
   const [isAbandoning, setIsAbandoning] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tricksEntryRoundNumber, setTricksEntryRoundNumber] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const pollDelayRef = useRef(ACTIVE_POLL_MS);
@@ -180,7 +181,9 @@ export default function LiveGamePage() {
   const selectedRound = game.rounds.find((round) => round.roundNumber === selectedRoundNumber) ?? liveRound;
   const isViewingHistory = selectedRound.roundNumber !== liveRound.roundNumber;
   const phase = selectedRound.phase;
-  const field: EntryField = phase === "BIDDING" ? "bid" : "tricksWon";
+  const hasEnteredTricks = game.players.some((player) => entryOf(liveRound, player.id)?.tricksWon !== undefined);
+  const isReviewingCalls = phase === "TRICKS" && tricksEntryRoundNumber !== liveRound.roundNumber && !hasEnteredTricks;
+  const field: EntryField = phase === "BIDDING" || isReviewingCalls ? "bid" : "tricksWon";
 
   const revealedRounds = game.rounds.filter((round) => round.revealed);
   const totals = calculateGameTotals(
@@ -391,7 +394,7 @@ export default function LiveGamePage() {
         <div className="hero-panel round-summary mt-5">
           <div className="round-card-header">
             <h1 className="relative font-display text-3xl font-black sm:text-4xl">
-              {selectedRound.revealed ? "Round complete" : phase === "BIDDING" ? "Calls" : "Tricks"}
+              {selectedRound.revealed ? "Round complete" : field === "bid" ? "Calls" : "Tricks"}
             </h1>
             <span className="round-status-badge"><Spade size={13} fill="currentColor" /> Round {selectedRound.roundNumber}/{game.rules.rounds}</span>
           </div>
@@ -399,7 +402,7 @@ export default function LiveGamePage() {
 
         {!selectedRound.revealed && !isViewingHistory && (
           <section className="panel mt-4 space-y-3">
-            {isHost && phase === "TRICKS" && (
+            {isHost && field === "tricksWon" && (
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Players</p>
                 <button
@@ -412,7 +415,7 @@ export default function LiveGamePage() {
                 </button>
               </div>
             )}
-            {isHost && phase === "TRICKS" && (
+            {isHost && field === "tricksWon" && (
               <div className={showPenaltyTools ? "admin-action-strip" : "hidden"}>
                 <label className="min-w-0 flex-1">
                   <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-[var(--muted)]">Disqualify</span>
@@ -463,7 +466,7 @@ export default function LiveGamePage() {
                       {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
                       {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
                     </span>
-                    {phase === "TRICKS" && !isHost && entry?.bid !== undefined && (
+                    {field === "tricksWon" && !isHost && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
                     )}
                     {entry?.punished && <span className="mt-0.5 block text-xs font-semibold text-[var(--danger)]">Disqualified</span>}
@@ -486,7 +489,7 @@ export default function LiveGamePage() {
               );
             })}
 
-            {phase === "TRICKS" && (
+            {field === "tricksWon" && (
               <div className={`metric-tile flex items-center justify-between text-sm font-bold ${trickTotal === 13 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>
                 <span>Total tricks</span>
                 <span className="score-number" aria-live="polite">{trickTotal} / 13</span>
@@ -495,7 +498,17 @@ export default function LiveGamePage() {
 
             {error && <p role="alert" className="status-alert">{error}</p>}
 
-            {isHost && phase === "TRICKS" && (
+            {field === "bid" && phase === "TRICKS" && (
+              <button
+                className="btn-primary min-h-14 w-full"
+                type="button"
+                onClick={() => setTricksEntryRoundNumber(liveRound.roundNumber)}
+              >
+                Next <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            )}
+
+            {isHost && field === "tricksWon" && (
               <>
                 {allTricksIn && trickTotal !== 13 && (
                   <p className="status-alert">
