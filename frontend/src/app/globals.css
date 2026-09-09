@@ -425,25 +425,24 @@ body::before {
   color: color-mix(in srgb, var(--danger) 28%, transparent);
 }
 
-.results-base-bid-chip {
-  display: inline-flex;
-  min-height: 2rem;
+.results-base-bid-bar {
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: space-between;
   border: 1px solid var(--tint-border);
-  border-radius: 999px;
+  border-radius: 0.65rem;
   background: var(--surface-tint);
   color: var(--muted);
-  padding: 0.3rem 0.75rem;
-  font-size: 0.72rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
 
-.results-base-bid-chip .score-number {
+.results-base-bid-bar .score-number {
   color: var(--foreground);
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   text-transform: none;
 }
 
@@ -454,54 +453,88 @@ body::before {
   gap: 0.75rem;
 }
 
-.podium-card {
+.podium-suit-card {
   position: relative;
   display: flex;
-  max-width: 10rem;
+  max-width: 9.5rem;
   flex: 1;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  justify-content: center;
+  gap: 0.3rem;
   overflow: hidden;
-  border-radius: 0.75rem;
-  padding: 1rem 0.6rem 1.1rem;
+  border: 1px solid rgba(16, 28, 21, 0.16);
+  border-radius: 0.5rem;
+  padding: 1.5rem 0.5rem 1.1rem;
   text-align: center;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1.25rem 2.5rem rgba(5, 30, 17, 0.22);
 }
 
-.podium-card > *:not(.player-suit-watermark) {
+.podium-suit-card-1 {
+  order: 2;
+  min-height: 14.5rem;
+  max-width: 10.5rem;
+  border: 1px solid var(--gold);
+  background: linear-gradient(165deg, #ffe7a0, var(--rank-1-bg));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent), 0 1.5rem 3rem rgba(198, 155, 24, 0.35);
+}
+
+.podium-suit-card-2 {
+  order: 1;
+  min-height: 11.5rem;
+  background: var(--rank-2-bg);
+}
+
+.podium-suit-card-3 {
+  order: 3;
+  min-height: 10.25rem;
+  background: var(--rank-3-bg);
+}
+
+.podium-suit-corner {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  display: grid;
+  justify-items: center;
+  font-family: var(--font-display), serif;
+  font-size: 1.05rem;
+  line-height: 0.85;
+}
+
+.podium-suit-corner svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.podium-suit-corner-bottom {
+  inset: auto 0.55rem 0.55rem auto;
+  transform: rotate(180deg);
+}
+
+.podium-suit-corner[data-suit="spade"],
+.podium-suit-corner[data-suit="club"] {
+  color: #17231c;
+}
+
+.podium-suit-corner[data-suit="heart"],
+.podium-suit-corner[data-suit="diamond"] {
+  color: #b22f38;
+}
+
+.podium-suit-center[data-suit="spade"],
+.podium-suit-center[data-suit="club"] {
+  color: #17231c;
+}
+
+.podium-suit-center[data-suit="heart"],
+.podium-suit-center[data-suit="diamond"] {
+  color: #b22f38;
+}
+
+.podium-suit-info {
   position: relative;
   z-index: 1;
-}
-
-.podium-card-1 {
-  order: 2;
-  transform: translateY(-0.85rem);
-  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--tint-border));
-  background: linear-gradient(160deg, var(--rank-1-bg), var(--surface-elevated));
-  padding-top: 1.4rem;
-  box-shadow: var(--shadow-md);
-}
-
-.podium-card-2 {
-  order: 1;
-  border: 1px solid var(--rank-2-edge);
-  background: linear-gradient(160deg, var(--rank-2-bg), var(--surface-elevated));
-}
-
-.podium-card-3 {
-  order: 3;
-  border: 1px solid var(--rank-3-edge);
-  background: linear-gradient(160deg, var(--rank-3-bg), var(--surface-elevated));
-}
-
-.podium-trophy {
-  color: var(--gold);
-}
-
-.podium-medal {
-  font-size: 1.5rem;
-  line-height: 1;
 }
 
 .podium-name {
@@ -514,42 +547,17 @@ body::before {
   font-weight: 800;
 }
 
+.podium-name-winner {
+  font-size: 1.4rem;
+  color: #3a2604;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
 .podium-score {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 700;
-}
-
-.podium-rank-chip {
-  display: inline-flex;
-  min-height: 1.5rem;
-  align-items: center;
-  border-radius: 999px;
-  margin-top: 0.4rem;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.68rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.podium-rank-chip-1 {
-  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--tint-border));
-  background: var(--rank-1-bg);
-  color: var(--gold);
-}
-
-.podium-rank-chip-2 {
-  border: 1px solid var(--rank-2-edge);
-  background: var(--rank-2-bg);
-  color: var(--rank-2-edge);
-}
-
-.podium-rank-chip-3 {
-  border: 1px solid var(--rank-3-edge);
-  background: var(--rank-3-bg);
-  color: var(--rank-3-edge);
 }
 
 .round-summary {

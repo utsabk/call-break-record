@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Club, Heart, Spade, Trophy } from "lucide-react";
+import { ArrowLeft, Club, Heart, Spade } from "lucide-react";
 import Link from "next/link";
 import { calculateFinalSettlement, calculateGameTotals, calculateRankings, hasRankingTie } from "@call-break/shared";
 import { useGameStore } from "@/lib/hooks/useGameStore";
@@ -38,38 +38,41 @@ export default function GameResultsPage() {
         <Link href="/" className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
           <ArrowLeft size={18} /> Home
         </Link>
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <p className="kicker-pill"><Heart size={14} fill="currentColor" /> Game complete</p>
-          <p className="results-base-bid-chip"><span>Base bid</span><span className="score-number">{currentGame.rules.baseBid}</span></p>
-        </div>
-        <h1 className="mt-4 text-center font-display text-2xl font-black sm:text-3xl">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
+        {tied && <h1 className="mt-8 text-center font-display text-2xl font-black sm:text-3xl">This game ends in a tie.</h1>}
 
         {!tied && rankings.length >= 3 && (
           <section className="podium mt-8" aria-label="Top three standings">
-            <div className="podium-card podium-card-2">
-              <Heart className="player-suit-watermark" data-suit="heart" aria-hidden="true" fill="currentColor" size={56} />
-              <span className="podium-medal">🥈</span>
-              <p className="podium-name">{rankings[1].playerName}</p>
-              <p className="podium-score">{formatScore(rankings[1].totalScoreTenths)}</p>
-              <span className="podium-rank-chip podium-rank-chip-2">2nd</span>
+            <div className="podium-suit-card podium-suit-card-2" data-suit="heart">
+              <span className="podium-suit-corner" data-suit="heart" aria-hidden="true"><strong>A</strong><Heart size={12} fill="currentColor" /></span>
+              <Heart className="podium-suit-center" data-suit="heart" fill="currentColor" size={48} aria-hidden="true" />
+              <span className="podium-suit-corner podium-suit-corner-bottom" data-suit="heart" aria-hidden="true"><strong>A</strong><Heart size={12} fill="currentColor" /></span>
+              <div className="podium-suit-info">
+                <p className="podium-name">{rankings[1].playerName}</p>
+                <p className="podium-score">{formatScore(rankings[1].totalScoreTenths)}</p>
+              </div>
             </div>
-            <div className="podium-card podium-card-1">
-              <Spade className="player-suit-watermark" data-suit="spade" aria-hidden="true" fill="currentColor" size={64} />
-              <Trophy className="podium-trophy" size={20} />
-              <span className="podium-medal">🥇</span>
-              <p className="podium-name">{rankings[0].playerName}</p>
-              <p className="podium-score">{formatScore(rankings[0].totalScoreTenths)}</p>
-              <span className="podium-rank-chip podium-rank-chip-1">Winner</span>
+            <div className="podium-suit-card podium-suit-card-1" data-suit="spade">
+              <span className="podium-suit-corner" data-suit="spade" aria-hidden="true"><strong>A</strong><Spade size={12} fill="currentColor" /></span>
+              <Spade className="podium-suit-center" data-suit="spade" fill="currentColor" size={56} aria-hidden="true" />
+              <span className="podium-suit-corner podium-suit-corner-bottom" data-suit="spade" aria-hidden="true"><strong>A</strong><Spade size={12} fill="currentColor" /></span>
+              <div className="podium-suit-info">
+                <p className="podium-name podium-name-winner">{rankings[0].playerName}</p>
+                <p className="podium-score">{formatScore(rankings[0].totalScoreTenths)}</p>
+              </div>
             </div>
-            <div className="podium-card podium-card-3">
-              <Club className="player-suit-watermark" data-suit="club" aria-hidden="true" fill="currentColor" size={48} />
-              <span className="podium-medal">🥉</span>
-              <p className="podium-name">{rankings[2].playerName}</p>
-              <p className="podium-score">{formatScore(rankings[2].totalScoreTenths)}</p>
-              <span className="podium-rank-chip podium-rank-chip-3">3rd</span>
+            <div className="podium-suit-card podium-suit-card-3" data-suit="club">
+              <span className="podium-suit-corner" data-suit="club" aria-hidden="true"><strong>A</strong><Club size={12} fill="currentColor" /></span>
+              <Club className="podium-suit-center" data-suit="club" fill="currentColor" size={42} aria-hidden="true" />
+              <span className="podium-suit-corner podium-suit-corner-bottom" data-suit="club" aria-hidden="true"><strong>A</strong><Club size={12} fill="currentColor" /></span>
+              <div className="podium-suit-info">
+                <p className="podium-name">{rankings[2].playerName}</p>
+                <p className="podium-score">{formatScore(rankings[2].totalScoreTenths)}</p>
+              </div>
             </div>
           </section>
         )}
+
+        <p className="results-base-bid-bar mt-4"><span>Base bid</span><span className="score-number">{currentGame.rules.baseBid}</span></p>
 
         <section className="panel mt-6 overflow-hidden p-0">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_5rem_5rem] gap-2 border-b border-[var(--border)] bg-[var(--surface-tint)] px-5 py-3 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
