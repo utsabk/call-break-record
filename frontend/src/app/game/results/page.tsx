@@ -38,16 +38,39 @@ export default function GameResultsPage() {
         <Link href="/" className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
           <ArrowLeft size={18} /> Home
         </Link>
-        <header className="hero-panel mt-8">
+        <header className="hero-panel hero-panel-final mt-8 text-center">
           <span className="hero-card-corner" data-red="true" aria-hidden="true">A ♥</span>
-          <Trophy className="text-[var(--gold)]" size={32} />
-          <p className="kicker-pill relative mt-5"><Heart size={14} fill="currentColor" /> Game complete</p>
+          <div className="hero-trophy-badge relative mx-auto"><Trophy size={30} /></div>
+          <p className="kicker-pill relative mt-4 justify-center"><Heart size={14} fill="currentColor" /> Game complete</p>
           <h1 className="relative mt-4 font-display text-3xl font-black">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
-          <div className="final-base-bid relative mt-5">
+          <div className="final-base-bid relative mx-auto mt-5 max-w-xs">
             <span className="text-xs font-bold uppercase tracking-wide">Base bid</span>
             <span className="score-number text-2xl font-bold">{currentGame.rules.baseBid}</span>
           </div>
         </header>
+
+        {!tied && rankings.length >= 3 && (
+          <section className="podium mt-6" aria-label="Top three standings">
+            <div className="podium-place">
+              <span className="podium-medal">🥈</span>
+              <p className="podium-name">{rankings[1].playerName}</p>
+              <p className="podium-score">{formatScore(rankings[1].totalScoreTenths)}</p>
+              <div className="podium-block podium-block-2"><span>2</span></div>
+            </div>
+            <div className="podium-place podium-place-first">
+              <span className="podium-medal">🥇</span>
+              <p className="podium-name">{rankings[0].playerName}</p>
+              <p className="podium-score">{formatScore(rankings[0].totalScoreTenths)}</p>
+              <div className="podium-block podium-block-1"><span>1</span></div>
+            </div>
+            <div className="podium-place">
+              <span className="podium-medal">🥉</span>
+              <p className="podium-name">{rankings[2].playerName}</p>
+              <p className="podium-score">{formatScore(rankings[2].totalScoreTenths)}</p>
+              <div className="podium-block podium-block-3"><span>3</span></div>
+            </div>
+          </section>
+        )}
 
         <section className="panel mt-6 overflow-hidden p-0">
           <div className="grid grid-cols-[3rem_minmax(0,1fr)_5rem_5rem] gap-2 border-b border-[var(--border)] bg-[var(--surface-tint)] px-5 py-3 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
