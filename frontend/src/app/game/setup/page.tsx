@@ -67,7 +67,14 @@ export default function GameSetupPage() {
         <Link href="/" className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold"><ArrowLeft size={18} /> Home</Link>
         <header className="hero-panel mt-8"><span className="hero-card-corner" aria-hidden="true">A ♠</span><p className="kicker-pill"><Spade size={14} fill="currentColor" /> Table setup</p><h1 className="relative mt-5 font-display text-4xl font-black">New game</h1><p className="relative mt-2 text-sm leading-6 text-[var(--muted)]">Four players, five rounds, one shared score.</p></header>
         <form className="panel mt-6 space-y-6" onSubmit={startGame}>
-          <fieldset className="space-y-4"><legend className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Players</legend>{names.map((name, index) => <label key={index} className="block"><span className="sr-only">Player {index + 1}</span><input className="input-base" placeholder={`Player ${index + 1}`} value={name} maxLength={50} autoComplete="off" aria-invalid={Boolean(nameError)} onChange={(event) => updateName(index, event.target.value)} /></label>)}{nameError && <p role="alert" className="text-sm text-[var(--danger)]">{nameError}</p>}</fieldset>
+          <div className="players-card">
+            <Spade className="players-card-watermark" aria-hidden="true" fill="currentColor" size={220} />
+            <fieldset className="space-y-4">
+              <legend className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Players</legend>
+              {names.map((name, index) => <label key={index} className="block"><span className="sr-only">Player {index + 1}</span><input className="input-base" placeholder={`Player ${index + 1}`} value={name} maxLength={50} autoComplete="off" aria-invalid={Boolean(nameError)} onChange={(event) => updateName(index, event.target.value)} /></label>)}
+              {nameError && <p role="alert" className="text-sm text-[var(--danger)]">{nameError}</p>}
+            </fieldset>
+          </div>
           <label className="block"><span className="block text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Base bid</span><input className="input-base mt-3" type="number" inputMode="numeric" min="1" step="1" value={baseBid} aria-invalid={Boolean(baseBidError)} onChange={(event) => { setBaseBid(event.target.value); setBaseBidError(null); setSubmissionError(null); }} />{baseBidError && <span role="alert" className="mt-2 block text-sm text-[var(--danger)]">{baseBidError}</span>}</label>
           {(submissionError || storeError) && <p role="alert" className="status-alert">{submissionError || storeError}</p>}
           <button className="btn-primary min-h-14 w-full" type="submit" disabled={isLoading}>{isLoading ? "Creating game..." : <>Start game <ArrowRight size={18} /></>}</button>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CircleDollarSign, Copy, Eye, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
+import { ArrowRight, CircleDollarSign, Club, Copy, Diamond, Eye, Heart, Loader2, MoreVertical, Radio, Share2, Spade, Trash2, Trophy } from "lucide-react";
 import {
   GameStatus,
   GameView,
@@ -17,6 +17,18 @@ import { apiGameRepository, forgetGameCode, getGameSession, getHostToken } from 
 
 type Connection = "LIVE" | "RECONNECTING" | "OFFLINE";
 type EntryField = "bid" | "tricksWon";
+
+/** Cycles the four suits by seat order so every player card reads as a themed playing card. */
+const SUITS = [
+  { name: "spade", Icon: Spade },
+  { name: "heart", Icon: Heart },
+  { name: "club", Icon: Club },
+  { name: "diamond", Icon: Diamond },
+] as const;
+
+function suitOf(index: number) {
+  return SUITS[index % SUITS.length];
+}
 
 const MEDALS = ["🥇", "🥈", "🥉", "4️⃣"];
 
@@ -469,16 +481,20 @@ export default function LiveGamePage() {
               </div>
             )}
 
-            {game.players.map((player) => {
+            {game.players.map((player, index) => {
               const entry = entryOf(liveRound, player.id);
               const value = valueOf(entry, field);
               const source = sourceOf(entry, field);
               const isOwnRow = player.id === ownPlayerId;
               const isClaimed = game.claimedPlayerIds.includes(player.id);
               const canEdit = isOwnRow && value === undefined;
+              const { name: suit, Icon: SuitIcon } = suitOf(index);
 
               return (
-                <div key={player.id} className="compact-player-row" data-state={value === undefined ? "waiting" : "done"}>
+                <div key={player.id} className="compact-player-row" data-state={value === undefined ? "waiting" : "done"} data-suit={suit}>
+                  <SuitIcon className="player-suit-corner player-suit-corner-top" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
+                  <SuitIcon className="player-suit-corner player-suit-corner-bottom" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
+                  <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
                   <span className="min-w-0">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate font-display text-lg font-bold">
@@ -558,11 +574,15 @@ export default function LiveGamePage() {
 
         {selectedRound.revealed && (
           <section className="panel mt-6 space-y-3">
-            {game.players.map((player) => {
+            {game.players.map((player, index) => {
               const playerRound = selectedRound.players.find((candidate) => candidate.playerId === player.id);
               if (!playerRound) return null;
+              const { name: suit, Icon: SuitIcon } = suitOf(index);
               return (
-                <div key={player.id} className="player-row">
+                <div key={player.id} className="player-row" data-suit={suit}>
+                  <SuitIcon className="player-suit-corner player-suit-corner-top" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
+                  <SuitIcon className="player-suit-corner player-suit-corner-bottom" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
+                  <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-semibold">{player.name}</p>

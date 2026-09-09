@@ -245,8 +245,8 @@ body::before {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 4.5rem;
+  height: 4.5rem;
   transform: translate(-50%, -50%);
 }
 
@@ -289,6 +289,38 @@ body::before {
 .suit-card-diamond {
   color: #b22f38;
   transform: translate(12%, -42%) rotate(16deg);
+}
+
+.players-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, var(--surface-elevated), color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-tint)));
+  padding: 1.25rem;
+}
+
+.players-card fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.players-card-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  transform: translate(-50%, -50%);
+  color: #17231c;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.players-card > *:not(.players-card-watermark) {
+  position: relative;
+  z-index: 1;
 }
 
 .home-title {
@@ -428,12 +460,13 @@ body::before {
 }
 
 .player-row {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 0.625rem;
   background: var(--surface-elevated);
-  padding: 0.85rem;
+  padding: 1.35rem 0.85rem;
+  overflow: hidden;
 }
-
 .round-card-header {
   position: relative;
   display: flex;
@@ -510,8 +543,78 @@ body::before {
   border-left: 3px solid var(--tint-border);
   border-radius: 0.65rem;
   background: linear-gradient(135deg, var(--surface-elevated), color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-tint)));
-  padding: 0.65rem;
+  padding: 1.35rem 0.65rem;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.player-suit-watermark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+.player-suit-watermark[data-suit="spade"],
+.player-suit-watermark[data-suit="club"] {
+  color: #17231c;
+}
+
+.player-suit-watermark[data-suit="heart"],
+.player-suit-watermark[data-suit="diamond"] {
+  color: #b22f38;
+}
+
+.player-suit-corner {
+  position: absolute;
+  left: 0.5rem;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.player-suit-corner-top {
+  top: 0.4rem;
+}
+
+.player-suit-corner-bottom {
+  right: 0.5rem;
+  bottom: 0.4rem;
+  left: auto;
+  transform: rotate(180deg);
+}
+
+.player-suit-corner[data-suit="spade"],
+.player-suit-corner[data-suit="club"] {
+  color: #17231c;
+}
+
+.player-suit-corner[data-suit="heart"],
+.player-suit-corner[data-suit="diamond"] {
+  color: #b22f38;
+}
+
+.compact-player-row > *:not(.player-suit-watermark):not(.player-suit-corner),
+.player-row > *:not(.player-suit-watermark):not(.player-suit-corner) {
+  position: relative;
+  z-index: 1;
+}
+
+.compact-player-row[data-suit="spade"],
+.compact-player-row[data-suit="club"],
+.player-row[data-suit="spade"],
+.player-row[data-suit="club"] {
+  border-left-color: #17231c;
+}
+
+.compact-player-row[data-suit="heart"],
+.compact-player-row[data-suit="diamond"],
+.player-row[data-suit="heart"],
+.player-row[data-suit="diamond"] {
+  border-left-color: #b22f38;
 }
 
 .admin-action-strip {
@@ -522,14 +625,6 @@ body::before {
   border-radius: 0.65rem;
   background: color-mix(in srgb, var(--surface-tint) 58%, transparent);
   padding: 0.75rem;
-}
-
-.compact-player-row[data-state="done"] {
-  border-left-color: var(--success);
-}
-
-.compact-player-row[data-state="waiting"] {
-  border-left-color: var(--warning);
 }
 
 .player-state-badge {

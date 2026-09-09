@@ -59,22 +59,22 @@ export default function Home() {
           <div className="suit-cards" aria-hidden="true">
             <span className="suit-card suit-card-spade">
               <span className="suit-card-corner"><strong>A</strong><Spade fill="currentColor" /></span>
-              <Spade className="suit-card-center" fill="currentColor" />
+              <Spade className="suit-card-center" fill="currentColor" size={72} />
               <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Spade fill="currentColor" /></span>
             </span>
             <span className="suit-card suit-card-heart">
               <span className="suit-card-corner"><strong>A</strong><Heart fill="currentColor" /></span>
-              <Heart className="suit-card-center" fill="currentColor" />
+              <Heart className="suit-card-center" fill="currentColor" size={72} />
               <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Heart fill="currentColor" /></span>
             </span>
             <span className="suit-card suit-card-club">
               <span className="suit-card-corner"><strong>A</strong><Club fill="currentColor" /></span>
-              <Club className="suit-card-center" fill="currentColor" />
+              <Club className="suit-card-center" fill="currentColor" size={72} />
               <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Club fill="currentColor" /></span>
             </span>
             <span className="suit-card suit-card-diamond">
               <span className="suit-card-corner"><strong>A</strong><Diamond fill="currentColor" /></span>
-              <Diamond className="suit-card-center" fill="currentColor" />
+              <Diamond className="suit-card-center" fill="currentColor" size={72} />
               <span className="suit-card-corner suit-card-corner-bottom"><strong>A</strong><Diamond fill="currentColor" /></span>
             </span>
           </div>
