@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Heart, Trophy } from "lucide-react";
+import { ArrowLeft, Club, Heart, Spade, Trophy } from "lucide-react";
 import Link from "next/link";
 import { calculateFinalSettlement, calculateGameTotals, calculateRankings, hasRankingTie } from "@call-break/shared";
 import { useGameStore } from "@/lib/hooks/useGameStore";
@@ -38,36 +38,35 @@ export default function GameResultsPage() {
         <Link href="/" className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold">
           <ArrowLeft size={18} /> Home
         </Link>
-        <header className="hero-panel hero-panel-final mt-8 text-center">
-          <span className="hero-card-corner" data-red="true" aria-hidden="true">A ♥</span>
-          <div className="hero-trophy-badge relative mx-auto"><Trophy size={30} /></div>
-          <p className="kicker-pill relative mt-4 justify-center"><Heart size={14} fill="currentColor" /> Game complete</p>
-          <h1 className="relative mt-4 font-display text-3xl font-black">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
-          <div className="final-base-bid relative mx-auto mt-5 max-w-xs">
-            <span className="text-xs font-bold uppercase tracking-wide">Base bid</span>
-            <span className="score-number text-2xl font-bold">{currentGame.rules.baseBid}</span>
-          </div>
-        </header>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+          <p className="kicker-pill"><Heart size={14} fill="currentColor" /> Game complete</p>
+          <p className="results-base-bid-chip"><span>Base bid</span><span className="score-number">{currentGame.rules.baseBid}</span></p>
+        </div>
+        <h1 className="mt-4 text-center font-display text-2xl font-black sm:text-3xl">{tied ? "This game ends in a tie." : `${settlement?.winner.playerName} takes the table.`}</h1>
 
         {!tied && rankings.length >= 3 && (
-          <section className="podium mt-6" aria-label="Top three standings">
-            <div className="podium-place">
+          <section className="podium mt-8" aria-label="Top three standings">
+            <div className="podium-card podium-card-2">
+              <Heart className="player-suit-watermark" data-suit="heart" aria-hidden="true" fill="currentColor" size={56} />
               <span className="podium-medal">🥈</span>
               <p className="podium-name">{rankings[1].playerName}</p>
               <p className="podium-score">{formatScore(rankings[1].totalScoreTenths)}</p>
-              <div className="podium-block podium-block-2"><span>2</span></div>
+              <span className="podium-rank-chip podium-rank-chip-2">2nd</span>
             </div>
-            <div className="podium-place podium-place-first">
+            <div className="podium-card podium-card-1">
+              <Spade className="player-suit-watermark" data-suit="spade" aria-hidden="true" fill="currentColor" size={64} />
+              <Trophy className="podium-trophy" size={20} />
               <span className="podium-medal">🥇</span>
               <p className="podium-name">{rankings[0].playerName}</p>
               <p className="podium-score">{formatScore(rankings[0].totalScoreTenths)}</p>
-              <div className="podium-block podium-block-1"><span>1</span></div>
+              <span className="podium-rank-chip podium-rank-chip-1">Winner</span>
             </div>
-            <div className="podium-place">
+            <div className="podium-card podium-card-3">
+              <Club className="player-suit-watermark" data-suit="club" aria-hidden="true" fill="currentColor" size={48} />
               <span className="podium-medal">🥉</span>
               <p className="podium-name">{rankings[2].playerName}</p>
               <p className="podium-score">{formatScore(rankings[2].totalScoreTenths)}</p>
-              <div className="podium-block podium-block-3"><span>3</span></div>
+              <span className="podium-rank-chip podium-rank-chip-3">3rd</span>
             </div>
           </section>
         )}

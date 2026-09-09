@@ -425,44 +425,82 @@ body::before {
   color: color-mix(in srgb, var(--danger) 28%, transparent);
 }
 
-.hero-panel-final {
-  background:
-    radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 60%),
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 92%, transparent), color-mix(in srgb, var(--surface-tint) 85%, transparent)),
-    var(--surface-elevated);
+.results-base-bid-chip {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--tint-border);
+  border-radius: 999px;
+  background: var(--surface-tint);
+  color: var(--muted);
+  padding: 0.3rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
-.hero-trophy-badge {
-  display: flex;
-  width: 3.75rem;
-  height: 3.75rem;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--tint-border));
-  background: linear-gradient(145deg, var(--rank-1-bg), var(--surface-elevated));
-  color: var(--gold);
-  box-shadow: var(--shadow-sm);
+.results-base-bid-chip .score-number {
+  color: var(--foreground);
+  font-size: 0.9rem;
+  text-transform: none;
 }
 
 .podium {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 
-.podium-place {
+.podium-card {
+  position: relative;
   display: flex;
-  max-width: 9rem;
+  max-width: 10rem;
   flex: 1;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  padding: 1rem 0.6rem 1.1rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.podium-card > *:not(.player-suit-watermark) {
+  position: relative;
+  z-index: 1;
+}
+
+.podium-card-1 {
+  order: 2;
+  transform: translateY(-0.85rem);
+  border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--tint-border));
+  background: linear-gradient(160deg, var(--rank-1-bg), var(--surface-elevated));
+  padding-top: 1.4rem;
+  box-shadow: var(--shadow-md);
+}
+
+.podium-card-2 {
+  order: 1;
+  border: 1px solid var(--rank-2-edge);
+  background: linear-gradient(160deg, var(--rank-2-bg), var(--surface-elevated));
+}
+
+.podium-card-3 {
+  order: 3;
+  border: 1px solid var(--rank-3-edge);
+  background: linear-gradient(160deg, var(--rank-3-bg), var(--surface-elevated));
+}
+
+.podium-trophy {
+  color: var(--gold);
 }
 
 .podium-medal {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   line-height: 1;
 }
 
@@ -472,6 +510,7 @@ body::before {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display), serif;
+  font-size: 1.05rem;
   font-weight: 800;
 }
 
@@ -482,42 +521,35 @@ body::before {
   font-weight: 700;
 }
 
-.podium-block {
-  display: flex;
-  width: 100%;
-  align-items: flex-start;
-  justify-content: center;
-  margin-top: 0.5rem;
-  border-radius: 0.5rem 0.5rem 0 0;
-  padding-top: 0.5rem;
-  font-family: var(--font-display), serif;
-  font-size: 1.4rem;
-  font-weight: 900;
+.podium-rank-chip {
+  display: inline-flex;
+  min-height: 1.5rem;
+  align-items: center;
+  border-radius: 999px;
+  margin-top: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.podium-block-1 {
-  height: 6rem;
+.podium-rank-chip-1 {
   border: 1px solid color-mix(in srgb, var(--gold) 55%, var(--tint-border));
   background: var(--rank-1-bg);
   color: var(--gold);
 }
 
-.podium-block-2 {
-  height: 4.25rem;
+.podium-rank-chip-2 {
   border: 1px solid var(--rank-2-edge);
   background: var(--rank-2-bg);
   color: var(--rank-2-edge);
 }
 
-.podium-block-3 {
-  height: 3.25rem;
+.podium-rank-chip-3 {
   border: 1px solid var(--rank-3-edge);
   background: var(--rank-3-bg);
   color: var(--rank-3-edge);
-}
-
-.podium-place-first .podium-name {
-  font-size: 1.05rem;
 }
 
 .round-summary {
