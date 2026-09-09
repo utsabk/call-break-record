@@ -1,7 +1,7 @@
 # Call Break Scorekeeper
 
 A mobile-first web app for scoring the Nepali card game **Call Break**. One host creates a game,
-shares an 8-character code, and players and spectators follow the scoring live from their own devices.
+shares a 4-digit code, and players and spectators follow the scoring live from their own devices.
 
 - **Live site:** https://callbreak.kharelutsab.com
 - **API:** API Gateway → Lambda → DynamoDB (`eu-west-1`)
@@ -224,8 +224,7 @@ settlement while a tie is unresolved.
 
 ## Multi-device model
 
-A game is identified by an 8-character code (alphabet `ABCDEFGHJKLMNPQRTUVWXYZ2346789` —
-no `I`, `O`, `S`, `Z`). The code is an **access token, not authentication**: anyone holding it
+A game is identified by a 4-digit numeric code. The code is an **access token, not authentication**: anyone holding it
 can watch.
 
 **Roles**

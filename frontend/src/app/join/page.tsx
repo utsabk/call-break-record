@@ -15,9 +15,9 @@ export default function JoinGamePage() {
 
   const findGame = async (event: FormEvent) => {
     event.preventDefault();
-    const code = gameCode.replace(/\s/g, "").toUpperCase();
+    const code = gameCode.replace(/\s/g, "");
     setError(null);
-    if (!/^[A-Z0-9]{8}$/.test(code)) { setError("Enter the 8-character game code."); return; }
+    if (!/^[0-9]{4}$/.test(code)) { setError("Enter the 4-digit game code."); return; }
     setLoading(true);
     try {
       setGame(await apiGameRepository.getGameView(code));
@@ -59,7 +59,7 @@ export default function JoinGamePage() {
             <form className="panel mt-6" onSubmit={findGame}>
               <label className="block">
                 <span className="sr-only">Game code</span>
-                <input className="input-base score-number text-center text-2xl font-bold uppercase tracking-[0.2em]" maxLength={8} autoComplete="off" value={gameCode} onChange={(event) => setGameCode(event.target.value.toUpperCase())} />
+                <input className="input-base score-number text-center text-2xl font-bold tracking-[0.2em]" maxLength={4} inputMode="numeric" autoComplete="off" value={gameCode} onChange={(event) => setGameCode(event.target.value.replace(/\D/g, ""))} />
               </label>
               {error && <p className="status-alert mt-3" role="alert">{error}</p>}
               <button className="btn-primary min-h-14 mt-6 w-full" disabled={loading}>{loading ? "Looking for game..." : <>Continue <ArrowRight size={18} /></>}</button>

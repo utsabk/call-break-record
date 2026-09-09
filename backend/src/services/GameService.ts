@@ -30,10 +30,8 @@ import { gameRepository } from "../repositories/GameRepository";
 import { ValidationError } from "../validation";
 import { randomBytes, randomUUID } from "crypto";
 
-const GAME_CODE_ALPHABET = "ABCDEFGHJKLMNPQRTUVWXYZ2346789";
-
 function createGameCode(): string {
-  return Array.from(randomBytes(8), (byte) => GAME_CODE_ALPHABET[byte % GAME_CODE_ALPHABET.length]).join("");
+  return Array.from(randomBytes(4), (byte) => (byte % 10).toString()).join("");
 }
 
 export class GameService {

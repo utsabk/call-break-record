@@ -6,8 +6,8 @@ import { readHostToken, readSessionId } from "../utils/requestContext";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
-    const gameCode = event.pathParameters?.gameCode?.trim().toUpperCase();
-    if (!gameCode || !/^[A-Z0-9]{8}$/.test(gameCode)) return createErrorLambdaResponse(400, "Enter a valid game code", "INVALID_CODE");
+    const gameCode = event.pathParameters?.gameCode?.trim();
+    if (!gameCode || !/^[0-9]{4}$/.test(gameCode)) return createErrorLambdaResponse(400, "Enter a valid game code", "INVALID_CODE");
     const view = await gameService.getGameViewByCode(gameCode, readSessionId(event.headers), readHostToken(event.headers));
     return createLambdaResponse(200, successResponse(view));
   } catch (error) {
