@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Club, Diamond, Heart, History, MoreHorizontal, Plus, Spade, Users } from "lucide-react";
-import { Game } from "@call-break/shared";
+import { Game, GameStatus } from "@call-break/shared";
 import { apiGameRepository, forgetGameCode, getRememberedGameCodes } from "@/lib/repositories/ApiGameRepository";
 import { useGameStore } from "@/lib/hooks/useGameStore";
 
@@ -104,7 +104,7 @@ export default function Home() {
             <h2 className="font-display text-2xl font-bold">Game history</h2>
             <div className="mt-4 divide-y divide-[var(--border)] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] shadow-[var(--shadow-sm)]">
               {games
-                .filter((g) => g.status === "COMPLETED")
+                .filter((g) => g.status === GameStatus.COMPLETED || g.status === GameStatus.TIE)
                 .map((game) => (
                   <div key={game.id} className="flex items-center gap-3 px-4 py-4 sm:px-5">
                     <Link href={`/game/results/?code=${game.gameCode}`} className="min-w-0 flex-1">
