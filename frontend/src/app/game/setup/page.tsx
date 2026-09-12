@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowLeft, ArrowRight, Spade } from "lucide-react";
+import { ArrowLeft, ArrowRight, Heart, Spade } from "lucide-react";
 import Link from "next/link";
 import { GameRules, Player } from "@call-break/shared";
 import { useGameStore } from "@/lib/hooks/useGameStore";
@@ -62,13 +62,23 @@ export default function GameSetupPage() {
   };
 
   return (
-    <main className="app-shell">
+    <main className="app-shell setup-shell">
       <div className="app-container max-w-xl">
         <Link href="/" className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold"><ArrowLeft size={18} /> Home</Link>
-        <header className="hero-panel mt-8"><span className="hero-card-corner" aria-hidden="true">A ♠</span><p className="kicker-pill"><Spade size={14} fill="currentColor" /> Table setup</p><h1 className="relative mt-5 font-display text-4xl font-black">New game</h1><p className="relative mt-2 text-sm leading-6 text-[var(--muted)]">Four players, five rounds, one shared score.</p></header>
-        <form className="panel mt-6 space-y-6" onSubmit={startGame}>
+        <header className="hero-panel hero-spade-card mt-8" aria-labelledby="new-game-title">
+          <span className="hero-spade-card-corner" aria-hidden="true"><strong>A</strong><small>♠</small></span>
+          <Spade className="hero-spade-card-mark" aria-hidden="true" fill="currentColor" />
+          <div className="hero-spade-card-copy">
+            <h1 id="new-game-title" className="font-display text-4xl font-black">New game</h1>
+            <p>4 players · 5 rounds · 1 score</p>
+          </div>
+          <span className="hero-spade-card-corner hero-spade-card-corner-bottom" aria-hidden="true"><strong>A</strong><small>♠</small></span>
+        </header>
+        <form className="panel setup-heart-card mt-6 space-y-6" onSubmit={startGame}>
+          <span className="setup-heart-card-corner" aria-hidden="true"><strong>A</strong><small>♥</small></span>
+          <Heart className="setup-heart-card-mark" aria-hidden="true" fill="currentColor" />
           <div className="players-card">
-            <Spade className="players-card-watermark" aria-hidden="true" fill="currentColor" size={220} />
+            <Heart className="players-card-watermark" aria-hidden="true" fill="currentColor" size={220} />
             <fieldset className="space-y-4">
               <legend className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Players</legend>
               {names.map((name, index) => <label key={index} className="block"><span className="sr-only">Player {index + 1}</span><input className="input-base" placeholder={`Player ${index + 1}`} value={name} maxLength={50} autoComplete="off" aria-invalid={Boolean(nameError)} onChange={(event) => updateName(index, event.target.value)} /></label>)}
@@ -78,6 +88,7 @@ export default function GameSetupPage() {
           <label className="block"><span className="block text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Base bid</span><input className="input-base mt-3" type="number" inputMode="numeric" min="1" step="1" value={baseBid} aria-invalid={Boolean(baseBidError)} onChange={(event) => { setBaseBid(event.target.value); setBaseBidError(null); setSubmissionError(null); }} />{baseBidError && <span role="alert" className="mt-2 block text-sm text-[var(--danger)]">{baseBidError}</span>}</label>
           {(submissionError || storeError) && <p role="alert" className="status-alert">{submissionError || storeError}</p>}
           <button className="btn-primary min-h-14 w-full" type="submit" disabled={isLoading}>{isLoading ? "Creating game..." : <>Start game <ArrowRight size={18} /></>}</button>
+          <span className="setup-heart-card-corner setup-heart-card-corner-bottom" aria-hidden="true"><strong>A</strong><small>♥</small></span>
         </form>
       </div>
     </main>

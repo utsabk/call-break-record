@@ -3,24 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --background: #f7f0df;
-  --foreground: #16241c;
+  --card-felt: #155c37;
+  --card-ink: #17231c;
+  --card-heart: #a84248;
+  --card-gold: #b6801d;
+  --card-ivory: #fffdf7;
+  --background: #f4efdf;
+  --foreground: #223027;
   --surface: #fffaf0;
-  --surface-elevated: #ffffff;
-  --surface-tint: #eef5e7;
-  --surface-warm: #fff2d8;
-  --primary: #155c37;
-  --primary-foreground: #ffffff;
-  --accent: #0d6b7b;
-  --accent-soft: #dceff0;
+  --surface-elevated: var(--card-ivory);
+  --surface-tint: #edf2e8;
+  --surface-warm: #f5ecd5;
+  --primary: var(--card-felt);
+  --primary-foreground: var(--card-ivory);
+  --accent: #806522;
+  --accent-soft: #f2ead5;
   --secondary: #e9e4d7;
   --muted: #68746d;
   --border: #dcd8cc;
   --success: #28734c;
-  --warning: #9c6a1d;
-  --danger: #a84239;
+  --warning: #806522;
+  --danger: var(--card-heart);
   --danger-surface: #fbefeb;
-  --gold: #9c741d;
+  --gold: var(--card-gold);
   --primary-border: #0d4a2b;
   --primary-hover: #104e30;
   --danger-border: #e7c4bd;
@@ -44,24 +49,29 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --card-felt: #3d815b;
+    --card-ink: #dce5dd;
+    --card-heart: #d17b7d;
+    --card-gold: #d0a84a;
+    --card-ivory: #f4f1e8;
     --background: #122019;
     --foreground: #f4f1e8;
     --surface: #1a2c22;
     --surface-elevated: #21362a;
     --surface-tint: #263d30;
     --surface-warm: #372f1f;
-    --primary: #4eaa75;
+    --primary: var(--card-felt);
     --primary-foreground: #102118;
-    --accent: #72c8cf;
-    --accent-soft: #203a3b;
+    --accent: #d0a84a;
+    --accent-soft: #3a3320;
     --secondary: #2b4033;
     --muted: #b7c1ba;
     --border: #3c5144;
     --success: #71c894;
     --warning: #d3a451;
-    --danger: #ef9187;
+    --danger: var(--card-heart);
     --danger-surface: #442a28;
-    --gold: #d5ad54;
+    --gold: var(--card-gold);
     --primary-border: #2c744a;
     --primary-hover: #5cb983;
     --danger-border: #6b3a35;
@@ -98,8 +108,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background:
-    radial-gradient(circle at 12% 8%, rgba(13, 107, 123, 0.14) 0, transparent 19rem),
-    radial-gradient(circle at 88% 0%, rgba(156, 116, 29, 0.2) 0, transparent 21rem),
+    radial-gradient(circle at 12% 8%, rgba(21, 92, 55, 0.12) 0, transparent 19rem),
+    radial-gradient(circle at 88% 0%, rgba(182, 128, 29, 0.14) 0, transparent 21rem),
     linear-gradient(135deg, rgba(21, 92, 55, 0.08) 0 25%, transparent 25% 50%, rgba(21, 92, 55, 0.05) 50% 75%, transparent 75%) 0 0 / 2.25rem 2.25rem,
     var(--background);
   color: var(--foreground);
@@ -176,7 +186,7 @@ body::before {
   min-height: 100vh;
   padding: 1.25rem 1rem 2rem;
   background:
-    linear-gradient(rgba(15, 70, 43, 0.88), rgba(15, 70, 43, 0.94)),
+    linear-gradient(rgba(15, 70, 43, 0.9), rgba(15, 70, 43, 0.96)),
     repeating-linear-gradient(45deg, transparent 0 12px, rgba(255, 255, 255, 0.035) 12px 13px),
     var(--primary);
   color: white;
@@ -234,11 +244,17 @@ body::before {
   left: 50%;
   width: 7.5rem;
   aspect-ratio: 5 / 7;
-  border: 1px solid rgba(16, 28, 21, 0.16);
+  border: 1px solid color-mix(in srgb, var(--card-ink) 16%, transparent);
   border-radius: 0.5rem;
-  background: #fffdf7;
+  background: var(--card-ivory);
   box-shadow: 0 1.25rem 2.5rem rgba(5, 30, 17, 0.3);
   transform-origin: 50% 110%;
+}
+
+.home-shell .suit-card {
+  border-color: rgba(255, 255, 255, 0.72);
+  background: #fffefa;
+  box-shadow: 0 1.25rem 2.5rem rgba(3, 25, 14, 0.38), 0 0 0 3px rgba(255, 255, 255, 0.08);
 }
 
 .suit-card-center {
@@ -272,23 +288,33 @@ body::before {
 }
 
 .suit-card-spade {
-  color: #17231c;
+  color: var(--card-ink);
   transform: translate(-112%, -42%) rotate(-16deg);
 }
 
 .suit-card-heart {
-  color: #b22f38;
+  color: var(--card-heart);
   transform: translate(-72%, -51%) rotate(-6deg);
 }
 
 .suit-card-club {
-  color: #17231c;
+  color: var(--card-ink);
   transform: translate(-28%, -51%) rotate(6deg);
 }
 
 .suit-card-diamond {
-  color: #b22f38;
+  color: var(--card-heart);
   transform: translate(12%, -42%) rotate(16deg);
+}
+
+.home-shell .suit-card-spade,
+.home-shell .suit-card-club {
+  color: #17231c;
+}
+
+.home-shell .suit-card-heart,
+.home-shell .suit-card-diamond {
+  color: #b22f38;
 }
 
 .players-card {
@@ -313,7 +339,7 @@ body::before {
   left: 50%;
   z-index: 0;
   transform: translate(-50%, -50%);
-  color: #17231c;
+  color: var(--card-ink);
   opacity: 0.22;
   pointer-events: none;
 }
@@ -425,6 +451,197 @@ body::before {
   color: color-mix(in srgb, var(--danger) 28%, transparent);
 }
 
+.hero-spade-card {
+  min-height: 12rem;
+  border-color: var(--card-gold);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 92%, transparent), color-mix(in srgb, var(--surface-tint) 85%, transparent)),
+    var(--surface-elevated);
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
+}
+
+.hero-spade-card::before {
+  position: absolute;
+  inset: 0.45rem;
+  border: 1px solid rgba(104, 69, 8, 0.35);
+  border-radius: 0.5rem;
+  content: "";
+  pointer-events: none;
+}
+
+.hero-spade-card-corner {
+  position: absolute;
+  top: 1rem;
+  left: 1.1rem;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  color: var(--card-ink);
+  font-family: var(--font-display), serif;
+  line-height: 0.9;
+}
+
+.hero-spade-card-corner strong {
+  font-size: 1.45rem;
+}
+
+.hero-spade-card-corner small {
+  margin-top: 0.1rem;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 1.3rem;
+  font-weight: 900;
+  line-height: 0.8;
+}
+
+.hero-spade-card-corner-bottom {
+  top: auto;
+  right: 1.1rem;
+  bottom: 1rem;
+  left: auto;
+  transform: rotate(180deg);
+}
+
+.hero-spade-card-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 9rem;
+  height: 9rem;
+  transform: translate(-50%, -50%);
+  color: color-mix(in srgb, var(--card-ink) 10%, transparent);
+}
+
+.hero-spade-card-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  min-height: 9.5rem;
+  place-content: center;
+  padding: 1.5rem 4.5rem;
+  text-align: center;
+}
+
+.hero-spade-card-copy h1 {
+  color: var(--foreground);
+  line-height: 1;
+}
+
+.hero-spade-card-copy p {
+  margin-top: 0.65rem;
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.setup-heart-card {
+  position: relative;
+  overflow: hidden;
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--tint-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 92%, transparent), color-mix(in srgb, var(--surface-tint) 85%, transparent)),
+    var(--surface-elevated);
+  color: var(--foreground);
+  padding: 3.5rem 1.25rem 4.75rem;
+  box-shadow: var(--shadow-md);
+}
+
+.setup-heart-card::before {
+  position: absolute;
+  inset: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--tint-border) 85%, transparent);
+  border-radius: 0.5rem;
+  content: "";
+  pointer-events: none;
+}
+
+.setup-heart-card-corner {
+  position: absolute;
+  top: 1rem;
+  left: 1.1rem;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  color: #8f292e;
+  font-family: var(--font-display), serif;
+  line-height: 0.8;
+}
+
+.setup-heart-card-corner strong {
+  font-size: 1.45rem;
+}
+
+.setup-heart-card-corner small {
+  margin-top: 0.15rem;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 0.8;
+}
+
+.setup-heart-card-corner-bottom {
+  top: auto;
+  right: 1.1rem;
+  bottom: 1rem;
+  left: auto;
+  transform: rotate(180deg);
+}
+
+.setup-heart-card-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 17rem;
+  height: 17rem;
+  transform: translate(-50%, -50%);
+  color: rgba(143, 41, 46, 0.1);
+}
+
+.setup-heart-card > *:not(.setup-heart-card-mark):not(.setup-heart-card-corner) {
+  position: relative;
+  z-index: 1;
+}
+
+.setup-heart-card .players-card {
+  border-color: var(--tint-border);
+  background: color-mix(in srgb, var(--surface-tint) 82%, var(--surface-elevated));
+}
+
+.setup-shell .table-nav {
+  color: rgba(255, 250, 240, 0.82);
+}
+
+.setup-heart-card,
+.setup-heart-card legend,
+.setup-heart-card label {
+  color: var(--foreground);
+}
+
+.setup-heart-card .input-base {
+  border-color: var(--border);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+}
+
+.setup-heart-card .input-base:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.setup-heart-card .players-card-watermark {
+  color: var(--card-heart);
+}
+
+.setup-heart-card .btn-primary {
+  border-color: var(--primary-border);
+  background: var(--primary);
+  box-shadow: var(--shadow-action);
+}
+
 .results-base-bid-bar {
   display: flex;
   align-items: center;
@@ -514,22 +731,22 @@ body::before {
 
 .podium-suit-corner[data-suit="spade"],
 .podium-suit-corner[data-suit="club"] {
-  color: #17231c;
+  color: var(--card-ink);
 }
 
 .podium-suit-corner[data-suit="heart"],
 .podium-suit-corner[data-suit="diamond"] {
-  color: #b22f38;
+  color: var(--card-heart);
 }
 
 .podium-suit-center[data-suit="spade"],
 .podium-suit-center[data-suit="club"] {
-  color: #17231c;
+  color: var(--card-ink);
 }
 
 .podium-suit-center[data-suit="heart"],
 .podium-suit-center[data-suit="diamond"] {
-  color: #b22f38;
+  color: var(--card-heart);
 }
 
 .podium-suit-info {
@@ -706,12 +923,12 @@ body::before {
 
 .player-suit-watermark[data-suit="spade"],
 .player-suit-watermark[data-suit="club"] {
-  color: #17231c;
+  color: var(--card-ink);
 }
 
 .player-suit-watermark[data-suit="heart"],
 .player-suit-watermark[data-suit="diamond"] {
-  color: #b22f38;
+  color: var(--card-heart);
 }
 
 .player-suit-corner {
@@ -735,12 +952,12 @@ body::before {
 
 .player-suit-corner[data-suit="spade"],
 .player-suit-corner[data-suit="club"] {
-  color: #17231c;
+  color: var(--card-ink);
 }
 
 .player-suit-corner[data-suit="heart"],
 .player-suit-corner[data-suit="diamond"] {
-  color: #b22f38;
+  color: var(--card-heart);
 }
 
 .compact-player-row > *:not(.player-suit-watermark):not(.player-suit-corner),
@@ -753,14 +970,14 @@ body::before {
 .compact-player-row[data-suit="club"],
 .player-row[data-suit="spade"],
 .player-row[data-suit="club"] {
-  border-left-color: #17231c;
+  border-left-color: var(--card-ink);
 }
 
 .compact-player-row[data-suit="heart"],
 .compact-player-row[data-suit="diamond"],
 .player-row[data-suit="heart"],
 .player-row[data-suit="diamond"] {
-  border-left-color: #b22f38;
+  border-left-color: var(--card-heart);
 }
 
 .admin-action-strip {
