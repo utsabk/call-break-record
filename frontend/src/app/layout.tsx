@@ -9,7 +9,7 @@ const display = Fraunces({ subsets: ["latin"], display: "swap", variable: "--fon
 export const metadata: Metadata = {
   title: "Call Break - Scorekeeper",
   description: "Track Call Break scores, bids, tricks, penalties and final settlement.",
-  icons: { icon: "/icons/call-break.svg" },
+  icons: { icon: "/icons/call-break.png" },
 };
 
 export const viewport: Viewport = {
