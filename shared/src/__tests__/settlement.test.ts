@@ -212,6 +212,166 @@ describe("Settlement Engine", () => {
     });
   });
 
+  describe("tie scenarios", () => {
+    it("handles 1st + 2nd tie with baseBid=2", () => {
+      // Both 1st and 2nd tied with same score
+      const rankings = [
+        { playerId: "p1", playerName: "Player1", totalScoreTenths: 185, isTied: true },
+        { playerId: "p2", playerName: "Player2", totalScoreTenths: 185, isTied: true },
+        { playerId: "p3", playerName: "Player3", totalScoreTenths: 120, isTied: false },
+        { playerId: "p4", playerName: "Player4", totalScoreTenths: 89, isTied: false },
+      ];
+
+      const settlement = calculateFinalSettlement(rankings, 2);
+
+      // Both winners split the pot: 1st gets 3*2=60, 2nd gets (3-1)*2=40
+      expect(settlement.lines[0].rank).toBe("TIE");
+      expect(settlement.lines[0].settlementAmountTenths).toBe(60);
+      expect(settlement.lines[1].rank).toBe("TIE");
+      expect(settlement.lines[1].settlementAmountTenths).toBe(40);
+      // 3rd pays: 2 * 2 = 4 = 40 tenths
+      expect(settlement.lines[2].rank).toBe(3);
+      expect(settlement.lines[2].settlementAmountTenths).toBe(-40);
+      // 4th pays: 3 * 2 = 6 = 60 tenths
+      expect(settlement.lines[3].rank).toBe(4);
+      expect(settlement.lines[3].settlementAmountTenths).toBe(-60);
+
+      expect(settlement.tieScenario).toBe("FIRST_SECOND");
+      expect(settlement.winners).toHaveLength(2);
+      expect(verifySettlementBalance(settlement)).toBe(true);
+    });
+
+    it("handles 2nd + 3rd tie with baseBid=2", () => {
+      // 2nd and 3rd tied with same score
+      const rankings = [
+        { playerId: "p1", playerName: "Player1", totalScoreTenths: 200, isTied: false },
+        { playerId: "p2", playerName: "Player2", totalScoreTenths: 150, isTied: true },
+        { playerId: "p3", playerName: "Player3", totalScoreTenths: 150, isTied: true },
+        { playerId: "p4", playerName: "Player4", totalScoreTenths: 80, isTied: false },
+      ];
+
+      const settlement = calculateFinalSettlement(rankings, 2);
+
+      // 1st (sole winner) gets: (1+2+3) * baseBid * 2 (bonus) = 6 * 2 * 2 = 240 tenths
+      expect(settlement.lines[0].rank).toBe(1);
+      expect(settlement.lines[0].settlementAmountTenths).toBe(240);
+      expect(settlement.winnerBonusApplied).toBe(true);
+      // 2nd and 3rd tied, each pays: ((1+2)/2) * baseBid * 2 (bonus) = 1.5 * 2 * 2 = 60 tenths
+      expect(settlement.lines[1].rank).toBe("TIE");
+      expect(settlement.lines[1].settlementAmountTenths).toBe(-60);
+      expect(settlement.lines[2].rank).toBe("TIE");
+      expect(settlement.lines[2].settlementAmountTenths).toBe(-60);
+      // 4th pays: 3 * 2 * 2 (bonus) = 120 tenths
+      expect(settlement.lines[3].rank).toBe(4);
+      expect(settlement.lines[3].settlementAmountTenths).toBe(-120);
+
+      expect(settlement.tieScenario).toBe("SECOND_THIRD");
+      expect(verifySettlementBalance(settlement)).toBe(true);
+    });
+
+    it("handles 3rd + 4th tie with baseBid=2", () => {
+      // 3rd and 4th tied with same score
+      const rankings = [
+        { playerId: "p1", playerName: "Player1", totalScoreTenths: 200, isTied: false },
+        { playerId: "p2", playerName: "Player2", totalScoreTenths: 150, isTied: false },
+        { playerId: "p3", playerName: "Player3", totalScoreTenths: 100, isTied: true },
+        { playerId: "p4", playerName: "Player4", totalScoreTenths: 100, isTied: true },
+      ];
+
+      const settlement = calculateFinalSettlement(rankings, 2);
+
+      // 1st (sole winner) gets: (1+2+3) * baseBid * 2 (bonus) = 6 * 2 * 2 = 240 tenths
+      expect(settlement.lines[0].rank).toBe(1);
+      expect(settlement.lines[0].settlementAmountTenths).toBe(240);
+      expect(settlement.winnerBonusApplied).toBe(true);
+      // 2nd pays: 1 * 2 * 2 (bonus) = 40 tenths
+      expect(settlement.lines[1].rank).toBe(2);
+      expect(settlement.lines[1].settlementAmountTenths).toBe(-40);
+      // 3rd and 4th tied, each pays: ((2+3)/2) * baseBid * 2 (bonus) = 2.5 * 2 * 2 = 100 tenths
+      expect(settlement.lines[2].rank).toBe("TIE");
+      expect(settlement.lines[2].settlementAmountTenths).toBe(-100);
+      expect(settlement.lines[3].rank).toBe("TIE");
+      expect(settlement.lines[3].settlementAmountTenths).toBe(-100);
+
+      expect(settlement.tieScenario).toBe("THIRD_FOURTH");
+      expect(verifySettlementBalance(settlement)).toBe(true);
+    });
+
+    it("handles 1st + 2nd tie with negative score doubling", () => {
+      // 1st and 2nd tied, 4th below zero for doubling
+      const rankings = [
+        { playerId: "p1", playerName: "Player1", totalScoreTenths: 185, isTied: true },
+        { playerId: "p2", playerName: "Player2", totalScoreTenths: 185, isTied: true },
+        { playerId: "p3", playerName: "Player3", totalScoreTenths: 120, isTied: false },
+        { playerId: "p4", playerName: "Player4", totalScoreTenths: -30, isTied: false },
+      ];
+
+      const settlement = calculateFinalSettlement(rankings, 2);
+
+      // Total pot: (1*2 + 2*2 + 3*2*2) = (20 + 40 + 120) = 180 tenths
+      // Player 1: 180/2 = 90 tenths
+      // Player 2: 180/2 - 20 = 70 tenths
+      expect(settlement.lines[0].settlementAmountTenths).toBe(90);
+      expect(settlement.lines[1].settlementAmountTenths).toBe(70);
+      // 3rd: 2 * 2 = 40 tenths
+      expect(settlement.lines[2].settlementAmountTenths).toBe(-40);
+      // 4th (below zero): 3 * 2 * 2 = 120 tenths
+      expect(settlement.lines[3].settlementAmountTenths).toBe(-120);
+      expect(settlement.lines[3].doubledForNegativeScore).toBe(true);
+
+      expect(verifySettlementBalance(settlement)).toBe(true);
+    });
+
+    it("handles 2nd + 3rd tie with winner bonus (20+)", () => {
+      // 2nd and 3rd tied, 1st above 20 for winner bonus
+      const rankings = [
+        { playerId: "p1", playerName: "Player1", totalScoreTenths: 200, isTied: false },
+        { playerId: "p2", playerName: "Player2", totalScoreTenths: 150, isTied: true },
+        { playerId: "p3", playerName: "Player3", totalScoreTenths: 150, isTied: true },
+        { playerId: "p4", playerName: "Player4", totalScoreTenths: 80, isTied: false },
+      ];
+
+      const settlement = calculateFinalSettlement(rankings, 2);
+
+      expect(settlement.winnerBonusApplied).toBe(true);
+      // 1st gets: 6 * 2 * 2 (bonus) = 240 tenths
+      expect(settlement.lines[0].settlementAmountTenths).toBe(240);
+      // 2nd and 3rd: each 1.5 * 2 = 3, doubled for winner bonus = 60 tenths
+      expect(settlement.lines[1].settlementAmountTenths).toBe(-60);
+      expect(settlement.lines[2].settlementAmountTenths).toBe(-60);
+      // 4th: 3 * 2 * 2 (bonus) = 120 tenths
+      expect(settlement.lines[3].settlementAmountTenths).toBe(-120);
+
+      expect(verifySettlementBalance(settlement)).toBe(true);
+    });
+
+    it("handles 1st + 2nd tie with stacked doubling (winner 20+ and negative player)", () => {
+      // 1st and 2nd tied with 20+ score, 4th below zero
+      const rankings = [
+        { playerId: "p1", playerName: "Player1", totalScoreTenths: 200, isTied: true },
+        { playerId: "p2", playerName: "Player2", totalScoreTenths: 200, isTied: true },
+        { playerId: "p3", playerName: "Player3", totalScoreTenths: 100, isTied: false },
+        { playerId: "p4", playerName: "Player4", totalScoreTenths: -50, isTied: false },
+      ];
+
+      const settlement = calculateFinalSettlement(rankings, 2);
+
+      expect(settlement.winnerBonusApplied).toBe(true);
+      // Total pot: (1*2 + 2*2 + 3*2)*2 (bonus) + extra for 4th negative = (20 + 40)*2 + 240 = 120 + 240 = 360
+      // Player 1: 360/2 = 180
+      // Player 2: 360/2 - 40 = 140
+      expect(settlement.lines[0].settlementAmountTenths).toBe(180);
+      expect(settlement.lines[1].settlementAmountTenths).toBe(140);
+      // 3rd: (2*2)*2 (bonus) = 80 tenths
+      expect(settlement.lines[2].settlementAmountTenths).toBe(-80);
+      // 4th (below zero + winner bonus): (3*2)*2*2 = 240 tenths
+      expect(settlement.lines[3].settlementAmountTenths).toBe(-240);
+      expect(settlement.lines[3].doubledForNegativeScore).toBe(true);
+
+      expect(verifySettlementBalance(settlement)).toBe(true);
+    });
+  });
+
   describe("formatSettlementAmount", () => {
     it("should format positive amounts with + prefix", () => {
       expect(formatSettlementAmount(60)).toBe("+6.0");

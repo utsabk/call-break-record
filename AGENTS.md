@@ -14,7 +14,7 @@ https://callbreak.kharelutsab.com.
 ```bash
 npm install
 npm run build:shared     # REQUIRED before backend/frontend type-check
-npm test                 # 73 tests in shared/
+npm test                 # 79 tests in shared/ (including 6 tie scenario tests)
 npm run build            # all workspaces, correct dependency order
 npm run build --workspace=@call-break/frontend    # static export to frontend/out
 cd infra && npx cdk synth                          # validate infra without deploying
@@ -65,10 +65,14 @@ These are load-bearing. Breaking one causes subtle, hard-to-trace bugs.
 - Made bid: `bid * 10 + (tricks - bid)`. Missed bid: `-bid * 10`. Punished: `-bid * 10`.
 - Tricks across four players must total exactly 13. Bids 1–13, tricks 0–13.
 - Settlement: ranks 2/3/4 pay 1×/2×/3× base bid; winner collects the **sum of what others pay**.
+  - **Tie scenarios** (players with identical final scores):
+    - **1st + 2nd tied:** Both are winners; they split the total pot equally. Player 2 nets their half minus their rank-2 cost.
+    - **2nd + 3rd tied:** 1st is sole winner, ranks 2 and 3 split their combined cost equally.
+    - **3rd + 4th tied:** 1st is sole winner, ranks 3 and 4 split their combined cost equally.
 - Payments double if the payer finished **below zero** (0.0 is not negative), and double again
-  if the winner finished on **20.0+**. The two stack.
+  if the winner finished on **20.0+**. The two stack. Doubling applies to all payers including tied players.
 - Settlement must always net to zero — assert with `verifySettlementBalance`.
-- Ties are marked `"TIE"`. Never invent a winner or settle an unresolved tie.
+- Ties are marked `"TIE"` in settlement rank; ranking detection uses `isTied` boolean flag.
 ## How a round is filled
 
 `BIDDING` → `TRICKS` → `COMPLETED`, derived by `getRoundPhase` from stored entries.

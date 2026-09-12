@@ -43,7 +43,7 @@ Four npm workspaces:
 
 | Workspace  | Purpose                                                                 |
 |------------|-------------------------------------------------------------------------|
-| `shared`   | Pure domain logic and types. No React, no AWS. Fully unit tested.        |
+| `shared`   | Pure domain logic and types. No React, no AWS. 79 unit tests.             |
 | `backend`  | Thin Lambda handlers → `GameService` → `GameRepository` (DynamoDB).      |
 | `frontend` | Next.js App Router, static export only.                                  |
 | `infra`    | AWS CDK. Two stacks.                                                     |
@@ -60,10 +60,10 @@ call-break/
 ├── shared/src/
 │   ├── types.ts          Game, Round, Player, PlayerRound, GameStatus
 │   ├── scoring.ts        calculateRoundScore, validateRound, calculateGameTotals
-│   ├── settlement.ts     calculateFinalSettlement (base bid + doubling rules)
-│   ├── ranking.ts        calculateRankings, hasRankingTie
+│   ├── settlement.ts     calculateFinalSettlement (base bid + doubling rules + tie scenarios)
+│   ├── ranking.ts        calculateRankings, getTieScenario, hasRankingTie
 │   ├── multiplayer.ts    roles, round entries, phase state, view projection
-│   └── __tests__/        73 tests
+│   └── __tests__/        79 tests (6 for tie scenarios)
 │
 ├── backend/src/
 │   ├── handlers/         one file per API route (12)

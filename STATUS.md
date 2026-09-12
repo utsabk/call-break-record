@@ -5,10 +5,11 @@ Current state of the application, kept short. Setup, deployment and troubleshoot
 
 ## Done
 
-**Domain (`shared/`)** — 73 passing tests
+**Domain (`shared/`)** — 79 passing tests
 - Round scoring in integer tenths, punishment override, round validation (tricks total 13)
 - Settlement with base bid, below-zero doubling, 20-point winner doubling, always nets to zero
-- Ranking with explicit tie detection (never invents a winner)
+- **Tie-breaker settlement** for 1st+2nd, 2nd+3rd, and 3rd+4th scenarios with proper pot-splitting
+- Ranking with explicit tie detection (`isTied` boolean; never invents a winner)
 - Multi-device roles, two-phase round entries, derived phase state, view projection
 
 **Backend (`backend/`)** — 12 Lambda handlers

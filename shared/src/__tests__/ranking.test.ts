@@ -69,13 +69,17 @@ describe("Ranking Engine", () => {
 
       const rankings = calculateRankings(players, gameTotals, "NONE");
 
-      // Both p1 and p2 are tied
-      expect(rankings[0].rank).toBe("TIE");
-      expect(rankings[1].rank).toBe("TIE");
+      // Both p1 and p2 are tied (marked with isTied, but have numeric rank)
+      expect(rankings[0].rank).toBe(1);
+      expect(rankings[0].isTied).toBe(true);
+      expect(rankings[1].rank).toBe(2);
+      expect(rankings[1].isTied).toBe(true);
 
       // Both p3 and p4 are tied
-      expect(rankings[2].rank).toBe("TIE");
-      expect(rankings[3].rank).toBe("TIE");
+      expect(rankings[2].rank).toBe(3);
+      expect(rankings[2].isTied).toBe(true);
+      expect(rankings[3].rank).toBe(4);
+      expect(rankings[3].isTied).toBe(true);
     });
 
     it("should assign sequential ranks with MANUAL strategy", () => {
@@ -105,14 +109,18 @@ describe("Ranking Engine", () => {
       const rankings = calculateRankings(players, gameTotals);
 
       // p1 and p2 should be tied
-      expect(rankings[0].rank).toBe("TIE");
-      expect(rankings[1].rank).toBe("TIE");
+      expect(rankings[0].rank).toBe(1);
+      expect(rankings[0].isTied).toBe(true);
+      expect(rankings[1].rank).toBe(2);
+      expect(rankings[1].isTied).toBe(true);
 
       // p3 should be 3rd
       expect(rankings[2].rank).toBe(3);
+      expect(rankings[2].isTied).toBe(false);
 
       // p4 should be 4th
       expect(rankings[3].rank).toBe(4);
+      expect(rankings[3].isTied).toBe(false);
     });
 
     it("should handle all players tied", () => {
@@ -125,7 +133,11 @@ describe("Ranking Engine", () => {
 
       const rankings = calculateRankings(players, gameTotals, "NONE");
 
-      expect(rankings.every((r) => r.rank === "TIE")).toBe(true);
+      expect(rankings.every((r) => r.isTied)).toBe(true);
+      expect(rankings[0].rank).toBe(1);
+      expect(rankings[1].rank).toBe(2);
+      expect(rankings[2].rank).toBe(3);
+      expect(rankings[3].rank).toBe(4);
     });
 
     it("should handle zero scores", () => {
@@ -138,7 +150,11 @@ describe("Ranking Engine", () => {
 
       const rankings = calculateRankings(players, gameTotals, "NONE");
 
-      expect(rankings.every((r) => r.rank === "TIE")).toBe(true);
+      expect(rankings.every((r) => r.isTied)).toBe(true);
+      expect(rankings[0].rank).toBe(1);
+      expect(rankings[1].rank).toBe(2);
+      expect(rankings[2].rank).toBe(3);
+      expect(rankings[3].rank).toBe(4);
     });
 
     it("should handle missing player scores", () => {
@@ -162,10 +178,10 @@ describe("Ranking Engine", () => {
   describe("hasRankingTie", () => {
     it("should return true when there are ties", () => {
       const rankings: any[] = [
-        { playerId: "p1", playerName: "Rahul", totalScoreTenths: 100, rank: "TIE" },
-        { playerId: "p2", playerName: "Suman", totalScoreTenths: 100, rank: "TIE" },
-        { playerId: "p3", playerName: "Amit", totalScoreTenths: 50, rank: 3 },
-        { playerId: "p4", playerName: "Raj", totalScoreTenths: 40, rank: 4 },
+        { playerId: "p1", playerName: "Rahul", totalScoreTenths: 100, rank: 1, isTied: true },
+        { playerId: "p2", playerName: "Suman", totalScoreTenths: 100, rank: 2, isTied: true },
+        { playerId: "p3", playerName: "Amit", totalScoreTenths: 50, rank: 3, isTied: false },
+        { playerId: "p4", playerName: "Raj", totalScoreTenths: 40, rank: 4, isTied: false },
       ];
 
       expect(hasRankingTie(rankings)).toBe(true);
@@ -173,10 +189,10 @@ describe("Ranking Engine", () => {
 
     it("should return false when there are no ties", () => {
       const rankings: any[] = [
-        { playerId: "p1", playerName: "Rahul", totalScoreTenths: 100, rank: 1 },
-        { playerId: "p2", playerName: "Suman", totalScoreTenths: 90, rank: 2 },
-        { playerId: "p3", playerName: "Amit", totalScoreTenths: 50, rank: 3 },
-        { playerId: "p4", playerName: "Raj", totalScoreTenths: 40, rank: 4 },
+        { playerId: "p1", playerName: "Rahul", totalScoreTenths: 100, rank: 1, isTied: false },
+        { playerId: "p2", playerName: "Suman", totalScoreTenths: 90, rank: 2, isTied: false },
+        { playerId: "p3", playerName: "Amit", totalScoreTenths: 50, rank: 3, isTied: false },
+        { playerId: "p4", playerName: "Raj", totalScoreTenths: 40, rank: 4, isTied: false },
       ];
 
       expect(hasRankingTie(rankings)).toBe(false);
@@ -184,10 +200,10 @@ describe("Ranking Engine", () => {
 
     it("should return true when all players are tied", () => {
       const rankings: any[] = [
-        { playerId: "p1", playerName: "Rahul", totalScoreTenths: 100, rank: "TIE" },
-        { playerId: "p2", playerName: "Suman", totalScoreTenths: 100, rank: "TIE" },
-        { playerId: "p3", playerName: "Amit", totalScoreTenths: 100, rank: "TIE" },
-        { playerId: "p4", playerName: "Raj", totalScoreTenths: 100, rank: "TIE" },
+        { playerId: "p1", playerName: "Rahul", totalScoreTenths: 100, rank: 1, isTied: true },
+        { playerId: "p2", playerName: "Suman", totalScoreTenths: 100, rank: 2, isTied: true },
+        { playerId: "p3", playerName: "Amit", totalScoreTenths: 100, rank: 3, isTied: true },
+        { playerId: "p4", playerName: "Raj", totalScoreTenths: 100, rank: 4, isTied: true },
       ];
 
       expect(hasRankingTie(rankings)).toBe(true);

@@ -545,6 +545,17 @@ body::before {
   font-family: var(--font-display), serif;
   font-size: 1.05rem;
   font-weight: 800;
+  line-height: 1.1;
+}
+
+/* When podium card has multiple player names (tied) */
+.podium-suit-info:has(.podium-name:nth-child(2)) .podium-name {
+  font-size: 0.95rem;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .podium-name-winner {

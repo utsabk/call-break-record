@@ -7,19 +7,19 @@ export interface RankingResult {
   playerName: string;
   totalScoreTenths: number;
   rank: number | "TIE";
+  isTied?: boolean; // true if this player is tied with another at the same position
 }
 
 export type TieBreakStrategy = "NONE" | "MANUAL";
+
+export type TieScenario = "FIRST_SECOND" | "SECOND_THIRD" | "THIRD_FOURTH" | null;
 
 /**
  * Calculate final rankings from game totals
  * @param players - Player list with IDs and names
  * @param gameTotals - Cumulative score for each player (in tenths)
- * @param tieBreakStrategy - How to handle ties (NONE = mark as TIE, MANUAL = assign sequential ranks)
+ * @param tieBreakStrategy - How to handle ties (preserved for compatibility; ties are always detected)
  * @returns Array of rankings sorted by score descending
- *
- * IMPORTANT: For V1, we do NOT automatically break ties.
- * If scores are equal, they are marked as "TIE"
  */
 export function calculateRankings(
   players: Array<{ id: string; name: string }>,
@@ -37,38 +37,23 @@ export function calculateRankings(
 
   // Assign ranks, marking ties
   const rankings: RankingResult[] = [];
-  let currentRank = 1;
 
   for (let i = 0; i < playerScores.length; i++) {
     const current = playerScores[i];
+    const rank = i + 1;
 
-    if (i > 0 && current.totalScoreTenths === playerScores[i - 1].totalScoreTenths) {
-      // Tied with previous player
-      const prevRanking = rankings[rankings.length - 1];
-      if (tieBreakStrategy === "MANUAL") {
-        // Sequential ranking despite tie
-        rankings.push({
-          ...current,
-          rank: i + 1,
-        });
-      } else {
-        // Mark as tied
-        rankings.push({
-          ...current,
-          rank: "TIE",
-        });
-        // Also mark previous player as tied if not already
-        if (typeof prevRanking.rank === "number") {
-          prevRanking.rank = "TIE";
-        }
-      }
-    } else {
-      // Not tied with previous
-      currentRank = i + 1;
-      rankings.push({
-        ...current,
-        rank: currentRank,
-      });
+    // Check if tied with previous player
+    const isTiedWithPrevious = i > 0 && current.totalScoreTenths === playerScores[i - 1].totalScoreTenths;
+
+    rankings.push({
+      ...current,
+      rank, // Always numeric, even if tied
+      isTied: isTiedWithPrevious,
+    });
+
+    // Also mark previous player as tied if this is the first time we detect a tie
+    if (isTiedWithPrevious && !rankings[i - 1].isTied) {
+      rankings[i - 1].isTied = true;
     }
   }
 
@@ -76,10 +61,38 @@ export function calculateRankings(
 }
 
 /**
+ * Identify the specific tie scenario from rankings
+ * @param rankings - Array of rankings
+ * @returns The tie scenario: "FIRST_SECOND", "SECOND_THIRD", "THIRD_FOURTH", or null
+ *
+ * Assumes ties are only between adjacent positions (as per requirements).
+ */
+export function getTieScenario(rankings: RankingResult[]): TieScenario {
+  if (rankings.length < 4) return null;
+
+  // Check for 1st + 2nd tied
+  if (rankings[0].isTied && rankings[0].totalScoreTenths === rankings[1].totalScoreTenths) {
+    return "FIRST_SECOND";
+  }
+
+  // Check for 2nd + 3rd tied
+  if (rankings[1].isTied && rankings[1].totalScoreTenths === rankings[2].totalScoreTenths) {
+    return "SECOND_THIRD";
+  }
+
+  // Check for 3rd + 4th tied
+  if (rankings[2].isTied && rankings[2].totalScoreTenths === rankings[3].totalScoreTenths) {
+    return "THIRD_FOURTH";
+  }
+
+  return null;
+}
+
+/**
  * Check if final rankings have a tie
  */
 export function hasRankingTie(rankings: RankingResult[]): boolean {
-  return rankings.some((r) => r.rank === "TIE");
+  return rankings.some((r) => r.isTied);
 }
 
 /**

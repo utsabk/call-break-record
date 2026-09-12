@@ -8,13 +8,21 @@
  * - the payer finished below zero
  * - the winner reached 20 points or more
  *
+ * Tie support:
+ * - 1st + 2nd tied: both are winners, split the pot equally
+ * - 2nd + 3rd tied: 1st is sole winner, 2nd and 3rd split their combined costs
+ * - 3rd + 4th tied: 1st is sole winner, 2nd is sole 2nd, 3rd and 4th split their combined costs
+ *
  * Total always equals zero
  */
+
+import type { RankingResult, TieScenario } from "./ranking";
+import { getTieScenario } from "./ranking";
 
 export interface SettlementLine {
   playerId: string;
   playerName: string;
-  rank: number;
+  rank: number | "TIE";
   settlementAmountTenths: number; // integer tenths
   finalScoreTenths: number; // game total, in tenths
   /** True when this player's payment was doubled for finishing below zero. */
@@ -30,6 +38,13 @@ export interface FinalSettlement {
     playerId: string;
     playerName: string;
   };
+  /** The winners when there's a tie. For a 1st/2nd tie, this contains both. */
+  winners?: Array<{
+    playerId: string;
+    playerName: string;
+  }>;
+  /** The detected tie scenario, if any */
+  tieScenario?: TieScenario;
 }
 
 /** Rank 2, 3 and 4 pay these multiples of the base bid. The winner collects. */
@@ -40,48 +55,257 @@ export const WINNER_BONUS_THRESHOLD_TENTHS = 200;
 
 /**
  * Calculate final settlement amounts based on ranking
- * @param rankings - Array of players sorted by score descending
+ * @param rankings - Array of players sorted by score descending (can be from calculateRankings)
  * @param baseBid - Settlement base bid value
  * @returns Settlement with amounts for each player
  *
- * Examples with baseBid=2:
- * Rank 1: +12
- * Rank 2: -2
- * Rank 3: -4 (-8 if that player finished below zero)
- * Rank 4: -6 (-12 if that player finished below zero)
+ * Supports three tie scenarios:
+ * 1. 1st + 2nd tied: both winners split the pot; player 2 also pays rank-2 cost
+ * 2. 2nd + 3rd tied: 1st is sole winner, tied pair splits their combined cost
+ * 3. 3rd + 4th tied: 1st is sole winner, tied pair splits their combined cost
+ *
+ * Examples with baseBid=2 (no doubling):
+ * No tie: Rank 1: +120, Rank 2: -20, Rank 3: -40, Rank 4: -60
+ * 1st+2nd tied: Rank 1: +60, Rank 2: +40, Rank 3: -40, Rank 4: -60
+ * 2nd+3rd tied: Rank 1: +240 (bonus), Rank 2: -60, Rank 3: -60, Rank 4: -120 (bonus)
+ * 3rd+4th tied: Rank 1: +240 (bonus), Rank 2: -40, Rank 3: -100, Rank 4: -100
  */
 export function calculateFinalSettlement(
   rankings: Array<{
     playerId: string;
     playerName: string;
     totalScoreTenths: number;
+    rank?: number; // optional, added by calculateRankings
+    isTied?: boolean; // optional, added by calculateRankings
   }>,
   baseBid: number
 ): FinalSettlement {
-  const winnerBonusApplied = (rankings[0]?.totalScoreTenths ?? 0) >= WINNER_BONUS_THRESHOLD_TENTHS;
+  // Detect tie scenario
+  const rankingsWithTies = rankings as any[] as RankingResult[];
+  const tieScenario = getTieScenario(rankingsWithTies);
 
-  const payments = rankings.map((ranking, index) => {
-    if (index === 0) return { amountTenths: 0, doubledForNegativeScore: false };
+  // Determine if anyone qualifies for the winner bonus
+  const winnerScoreTenths = rankings[0]?.totalScoreTenths ?? 0;
+  const winnerBonusApplied = winnerScoreTenths >= WINNER_BONUS_THRESHOLD_TENTHS;
 
-    const doubledForNegativeScore = ranking.totalScoreTenths < 0;
-    let amountTenths = (PAY_MULTIPLIERS[index] ?? 0) * baseBid * 10;
-    if (doubledForNegativeScore) amountTenths *= 2;
-    if (winnerBonusApplied) amountTenths *= 2;
+  // Helper to apply doubling rules
+  const applyDoublingRules = (amount: number, playerScoreTenths: number, winnerBonus: boolean): { amount: number; doubled: boolean } => {
+    let result = amount;
+    let doubled = false;
+    if (playerScoreTenths < 0) {
+      result *= 2;
+      doubled = true;
+    }
+    if (winnerBonus) {
+      result *= 2;
+    }
+    return { amount: result, doubled };
+  };
 
-    return { amountTenths, doubledForNegativeScore };
-  });
+  let lines: SettlementLine[] = [];
 
-  // The winner collects exactly what the others pay, so the settlement still nets to zero.
-  const potTenths = payments.reduce((total, payment) => total + payment.amountTenths, 0);
+  if (tieScenario === "FIRST_SECOND") {
+    // 1st and 2nd are tied, both are winners sharing the pot
+    // Calculate what ranks 2, 3 and 4 pay (with doubling rules applied to 3 and 4)
+    
+    // Player 2's "rank 2 cost" (they're also rank 2, so they pay this conceptually)
+    let rank2CostTenths = (PAY_MULTIPLIERS[1] ?? 0) * baseBid * 10;
+    if (winnerBonusApplied) rank2CostTenths *= 2;
+    
+    let rank3CostTenths = (PAY_MULTIPLIERS[2] ?? 0) * baseBid * 10;
+    if (rankings[2].totalScoreTenths < 0) rank3CostTenths *= 2;
+    if (winnerBonusApplied) rank3CostTenths *= 2;
+    
+    let rank4CostTenths = (PAY_MULTIPLIERS[3] ?? 0) * baseBid * 10;
+    if (rankings[3].totalScoreTenths < 0) rank4CostTenths *= 2;
+    if (winnerBonusApplied) rank4CostTenths *= 2;
+    
+    // Total pot is all three rank costs
+    const totalPotTenths = rank2CostTenths + rank3CostTenths + rank4CostTenths;
+    const halfPotTenths = Math.floor(totalPotTenths / 2);
+    
+    // Player 1: collects half the pot
+    const player1Collection = halfPotTenths;
+    
+    // Player 2: collects half the pot minus their rank 2 cost
+    const player2Collection = halfPotTenths - rank2CostTenths;
 
-  const lines: SettlementLine[] = rankings.map((ranking, index) => ({
-    playerId: ranking.playerId,
-    playerName: ranking.playerName,
-    rank: index + 1,
-    settlementAmountTenths: index === 0 ? potTenths : -payments[index].amountTenths,
-    finalScoreTenths: ranking.totalScoreTenths,
-    doubledForNegativeScore: payments[index].doubledForNegativeScore,
-  }));
+    lines = [
+      {
+        playerId: rankings[0].playerId,
+        playerName: rankings[0].playerName,
+        rank: "TIE",
+        settlementAmountTenths: player1Collection,
+        finalScoreTenths: rankings[0].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[1].playerId,
+        playerName: rankings[1].playerName,
+        rank: "TIE",
+        settlementAmountTenths: player2Collection,
+        finalScoreTenths: rankings[1].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[2].playerId,
+        playerName: rankings[2].playerName,
+        rank: 3,
+        settlementAmountTenths: -rank3CostTenths,
+        finalScoreTenths: rankings[2].totalScoreTenths,
+        doubledForNegativeScore: rankings[2].totalScoreTenths < 0,
+      },
+      {
+        playerId: rankings[3].playerId,
+        playerName: rankings[3].playerName,
+        rank: 4,
+        settlementAmountTenths: -rank4CostTenths,
+        finalScoreTenths: rankings[3].totalScoreTenths,
+        doubledForNegativeScore: rankings[3].totalScoreTenths < 0,
+      },
+    ];
+  } else if (tieScenario === "SECOND_THIRD") {
+    // 2nd and 3rd are tied, 1st is sole winner
+    // 1st collects all payments from ranks 2, 3, 4
+    // 2nd and 3rd each pay half of their combined rank payment
+    
+    // Calculate rank 2 payment (what tied players 2&3 each split)
+    let rank2CostTenths = (PAY_MULTIPLIERS[1] ?? 0) * baseBid * 10;
+    if (winnerBonusApplied) rank2CostTenths *= 2;
+    
+    // Calculate rank 3 payment (what tied players 2&3 each split)
+    let rank3CostTenths = (PAY_MULTIPLIERS[2] ?? 0) * baseBid * 10;
+    if (winnerBonusApplied) rank3CostTenths *= 2;
+    
+    // Calculate rank 4 payment (what sole rank 4 pays)
+    let rank4CostTenths = (PAY_MULTIPLIERS[3] ?? 0) * baseBid * 10;
+    if (rankings[3].totalScoreTenths < 0) rank4CostTenths *= 2;
+    if (winnerBonusApplied) rank4CostTenths *= 2;
+    
+    // Tied players 2&3 split their combined cost
+    const tiedCombinedCost = rank2CostTenths + rank3CostTenths;
+    const tiedIndividualCost = Math.floor(tiedCombinedCost / 2);
+    
+    // Winner collects from all three payers
+    const winnerCollection = tiedIndividualCost + tiedIndividualCost + rank4CostTenths;
+
+    lines = [
+      {
+        playerId: rankings[0].playerId,
+        playerName: rankings[0].playerName,
+        rank: 1,
+        settlementAmountTenths: winnerCollection,
+        finalScoreTenths: rankings[0].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[1].playerId,
+        playerName: rankings[1].playerName,
+        rank: "TIE",
+        settlementAmountTenths: -tiedIndividualCost,
+        finalScoreTenths: rankings[1].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[2].playerId,
+        playerName: rankings[2].playerName,
+        rank: "TIE",
+        settlementAmountTenths: -tiedIndividualCost,
+        finalScoreTenths: rankings[2].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[3].playerId,
+        playerName: rankings[3].playerName,
+        rank: 4,
+        settlementAmountTenths: -rank4CostTenths,
+        finalScoreTenths: rankings[3].totalScoreTenths,
+        doubledForNegativeScore: rankings[3].totalScoreTenths < 0,
+      },
+    ];
+  } else if (tieScenario === "THIRD_FOURTH") {
+    // 3rd and 4th are tied, 1st is sole winner, 2nd is sole rank 2
+    // 1st collects all payments from ranks 2, 3, 4
+    // 3rd and 4th each pay half of their combined rank payment
+    
+    // Calculate rank 2 payment (what sole rank 2 pays)
+    let rank2CostTenths = (PAY_MULTIPLIERS[1] ?? 0) * baseBid * 10;
+    if (winnerBonusApplied) rank2CostTenths *= 2;
+    
+    // Calculate rank 3 payment (what tied players 3&4 each split)
+    let rank3CostTenths = (PAY_MULTIPLIERS[2] ?? 0) * baseBid * 10;
+    if (winnerBonusApplied) rank3CostTenths *= 2;
+    
+    // Calculate rank 4 payment (what tied players 3&4 each split)
+    let rank4CostTenths = (PAY_MULTIPLIERS[3] ?? 0) * baseBid * 10;
+    if (winnerBonusApplied) rank4CostTenths *= 2;
+    
+    // Tied players 3&4 split their combined cost
+    const tiedCombinedCost = rank3CostTenths + rank4CostTenths;
+    const tiedIndividualCost = Math.floor(tiedCombinedCost / 2);
+    
+    // Winner collects from all three payers
+    const winnerCollection = rank2CostTenths + tiedIndividualCost + tiedIndividualCost;
+
+    lines = [
+      {
+        playerId: rankings[0].playerId,
+        playerName: rankings[0].playerName,
+        rank: 1,
+        settlementAmountTenths: winnerCollection,
+        finalScoreTenths: rankings[0].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[1].playerId,
+        playerName: rankings[1].playerName,
+        rank: 2,
+        settlementAmountTenths: -rank2CostTenths,
+        finalScoreTenths: rankings[1].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[2].playerId,
+        playerName: rankings[2].playerName,
+        rank: "TIE",
+        settlementAmountTenths: -tiedIndividualCost,
+        finalScoreTenths: rankings[2].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+      {
+        playerId: rankings[3].playerId,
+        playerName: rankings[3].playerName,
+        rank: "TIE",
+        settlementAmountTenths: -tiedIndividualCost,
+        finalScoreTenths: rankings[3].totalScoreTenths,
+        doubledForNegativeScore: false,
+      },
+    ];
+  } else {
+    // No tie - use standard settlement
+    const payments = rankings.map((ranking, index) => {
+      if (index === 0) return { amountTenths: 0, doubledForNegativeScore: false };
+
+      const doubledForNegativeScore = ranking.totalScoreTenths < 0;
+      let amountTenths = (PAY_MULTIPLIERS[index] ?? 0) * baseBid * 10;
+      if (doubledForNegativeScore) amountTenths *= 2;
+      if (winnerBonusApplied) amountTenths *= 2;
+
+      return { amountTenths, doubledForNegativeScore };
+    });
+
+    // The winner collects exactly what the others pay, so the settlement still nets to zero.
+    const potTenths = payments.reduce((total, payment) => total + payment.amountTenths, 0);
+
+    lines = rankings.map((ranking, index) => ({
+      playerId: ranking.playerId,
+      playerName: ranking.playerName,
+      rank: index + 1,
+      settlementAmountTenths: index === 0 ? potTenths : -payments[index].amountTenths,
+      finalScoreTenths: ranking.totalScoreTenths,
+      doubledForNegativeScore: payments[index].doubledForNegativeScore,
+    }));
+  }
 
   return {
     baseBid,
@@ -91,6 +315,13 @@ export function calculateFinalSettlement(
       playerId: rankings[0].playerId,
       playerName: rankings[0].playerName,
     },
+    tieScenario,
+    winners: tieScenario === "FIRST_SECOND" 
+      ? [
+          { playerId: rankings[0].playerId, playerName: rankings[0].playerName },
+          { playerId: rankings[1].playerId, playerName: rankings[1].playerName },
+        ]
+      : undefined,
   };
 }
 

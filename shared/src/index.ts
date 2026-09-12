@@ -34,4 +34,6 @@ export {
   calculateRankings,
   hasRankingTie,
   getNumericRankings,
+  getTieScenario,
+  type TieScenario,
 } from "./ranking";
