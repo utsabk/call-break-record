@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { ArrowRight, Check, Club, Eye, Spade, Users } from "lucide-react";
 import Link from "next/link";
-import { GameView, GameViewerRole } from "@call-break/shared";
+import { GameStatus, GameView, GameViewerRole } from "@call-break/shared";
 import { apiGameRepository } from "@/lib/repositories/ApiGameRepository";
 
 export default function JoinGamePage() {
@@ -67,13 +67,17 @@ export default function JoinGamePage() {
           </>
         )}
 
-        {game && (
-          <section className="panel mt-8">
-            <p className="kicker-pill"><Check size={14} /> Game found</p>
-            <h1 className="mt-2 font-display text-3xl font-bold tracking-[0.15em]">{game.gameCode}</h1>
-            <p className="mt-2 text-[var(--muted)]">Round {game.rounds.filter((round) => round.revealed).length + 1} of {game.rules.rounds}</p>
+        {game && (() => {
+          const scoredCount = game.rounds.filter((round) => round.revealed).length;
+          const isCompleted = game.status !== GameStatus.ACTIVE || scoredCount >= game.rules.rounds;
+          const currentRoundDisplay = isCompleted ? game.rules.rounds : scoredCount + 1;
+          return (
+            <section className="panel mt-8">
+              <p className="kicker-pill"><Check size={14} /> Game found</p>
+              <h1 className="mt-2 font-display text-3xl font-bold tracking-[0.15em]">{game.gameCode}</h1>
+              <p className="mt-2 text-[var(--muted)]">Round {currentRoundDisplay} of {game.rules.rounds}{isCompleted ? " (Completed)" : ""}</p>
 
-            <fieldset className="soft-panel mt-6">
+              <fieldset className="soft-panel mt-6">
               <legend className="text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Choose your player</legend>
               <div className="mt-3 space-y-2">
                 {game.players.map((player) => {
@@ -97,7 +101,8 @@ export default function JoinGamePage() {
             </div>
             <p className="mt-4 text-xs text-[var(--muted)]">Anyone with this code can watch this game.</p>
           </section>
-        )}
+          );
+        })()}
       </div>
     </main>
   );

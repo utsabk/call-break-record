@@ -12,6 +12,7 @@ import {
   RoundView,
   calculateGameTotals,
   calculateRankings,
+  getTieScenario,
 } from "@call-break/shared";
 import { apiGameRepository, forgetGameCode, getGameSession, getHostToken } from "@/lib/repositories/ApiGameRepository";
 
@@ -630,24 +631,37 @@ export default function LiveGamePage() {
                 </tr>
               </thead>
               <tbody>
-                {standings.map((standing, index) => (
-                  <tr
-                    key={standing.playerId}
-                    className={typeof standing.rank === "number" ? `rank-edge rank-${standing.rank}` : ""}
-                    data-current={standing.playerId === ownPlayerId}
-                    data-leader={standing.rank === 1}
-                  >
-                    <td className="py-2 pl-2 font-bold text-[var(--gold)]">
-                      <span aria-hidden="true">{MEDALS[index] ?? ""}</span> {standing.rank}
-                    </td>
-                    <th scope="row" className="max-w-32 truncate py-2 font-semibold">{standing.playerName}</th>
-                    {revealedRounds.map((round) => {
-                      const scored = round.players.find((candidate) => candidate.playerId === standing.playerId);
-                      return <td key={round.roundNumber} className={`score-number py-2 text-right ${scored && scored.scoreTenths < 0 ? "text-[var(--danger)]" : scored && scored.scoreTenths > 0 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>{scored ? formatScore(scored.scoreTenths) : "—"}</td>;
-                    })}
-                    <td className={`score-number py-2 pr-2 text-right font-bold ${standing.totalScoreTenths < 0 ? "text-[var(--danger)]" : standing.totalScoreTenths > 0 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>{formatScore(standing.totalScoreTenths)}</td>
-                  </tr>
-                ))}
+                {(() => {
+                  const tieScenario = getTieScenario(standings);
+                  return standings.map((standing, index) => {
+                    const isTied = standing.isTied || standing.rank === "TIE";
+                    const displayRank = isTied ? "TIE" : standing.rank;
+
+                    let medal = MEDALS[index] ?? "";
+                    if (tieScenario === "FIRST_SECOND" && (index === 0 || index === 1)) medal = "🥇";
+                    if (tieScenario === "SECOND_THIRD" && (index === 1 || index === 2)) medal = "🥈";
+                    if (tieScenario === "THIRD_FOURTH" && (index === 2 || index === 3)) medal = "🥉";
+
+                    return (
+                      <tr
+                        key={standing.playerId}
+                        className={typeof standing.rank === "number" ? `rank-edge rank-${standing.rank}` : ""}
+                        data-current={standing.playerId === ownPlayerId}
+                        data-leader={standing.rank === 1}
+                      >
+                        <td className="py-2 pl-2 font-bold text-[var(--gold)]">
+                          <span aria-hidden="true">{medal}</span> {displayRank}
+                        </td>
+                        <th scope="row" className="max-w-32 truncate py-2 font-semibold">{standing.playerName}</th>
+                        {revealedRounds.map((round) => {
+                          const scored = round.players.find((candidate) => candidate.playerId === standing.playerId);
+                          return <td key={round.roundNumber} className={`score-number py-2 text-right ${scored && scored.scoreTenths < 0 ? "text-[var(--danger)]" : scored && scored.scoreTenths > 0 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>{scored ? formatScore(scored.scoreTenths) : "—"}</td>;
+                        })}
+                        <td className={`score-number py-2 pr-2 text-right font-bold ${standing.totalScoreTenths < 0 ? "text-[var(--danger)]" : standing.totalScoreTenths > 0 ? "text-[var(--success)]" : "text-[var(--muted)]"}`}>{formatScore(standing.totalScoreTenths)}</td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </section>
