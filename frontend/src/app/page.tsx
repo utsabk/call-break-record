@@ -83,7 +83,7 @@ export default function Home() {
             <small>Scorekeeper</small>
           </h1>
           <div className="home-actions">
-            <Link href="/game/setup/" className="btn-primary"><Plus size={19} /> Create game</Link>
+            <Link href="/game/setup/" className="btn-primary home-create-button"><Plus size={19} /> Create game</Link>
             <Link href="/join/" className="btn-secondary"><Users size={19} /> Join game</Link>
           </div>
         </section>

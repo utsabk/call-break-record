@@ -386,6 +386,17 @@ body::before {
   width: 100%;
 }
 
+.home-actions .home-create-button {
+  border-color: #d0a84a;
+  background: var(--card-ivory);
+  color: var(--card-felt);
+  box-shadow: 0 2px 0 #d0a84a, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
+}
+
+.home-actions .home-create-button:hover {
+  background: #fff7df;
+}
+
 .home-shell #history > h2 {
   color: white;
 }
@@ -525,6 +536,8 @@ body::before {
 
 .hero-spade-card-copy h1 {
   color: var(--foreground);
+  white-space: nowrap;
+  font-size: 2.15rem;
   line-height: 1;
 }
 
@@ -535,6 +548,84 @@ body::before {
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+.lobby-code-card {
+  min-height: 22rem;
+}
+
+.lobby-code-card-corner {
+  color: var(--card-heart);
+}
+
+.lobby-code-card-mark {
+  color: color-mix(in srgb, var(--card-heart) 12%, transparent);
+}
+
+.lobby-code-card-copy {
+  min-height: 19.5rem;
+  padding-inline: 2rem;
+}
+
+.lobby-code-value {
+  display: block;
+  margin-top: 1.5rem;
+  color: #c9972e;
+  font-family: var(--font-sans), sans-serif;
+  font-size: clamp(2rem, 9vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 248, 213, 0.9), 0 0 18px rgba(201, 151, 46, 0.32);
+}
+
+.lobby-code-actions {
+  display: flex;
+  width: 100%;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.lobby-code-actions .btn-secondary {
+  min-width: 0;
+  padding-inline: 0.75rem;
+}
+
+.lobby-players {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.lobby-player {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--tint-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, var(--surface-tint));
+  color: var(--foreground);
+  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-sm);
+}
+
+.lobby-player-seat {
+  display: inline-flex;
+  height: 1.4rem;
+  width: 1.4rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-warm);
+  color: var(--gold);
+  font-size: 0.7rem;
 }
 
 .setup-heart-card {
