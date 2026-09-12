@@ -60,13 +60,13 @@ export const WINNER_BONUS_THRESHOLD_TENTHS = 200;
  * @returns Settlement with amounts for each player
  *
  * Supports three tie scenarios:
- * 1. 1st + 2nd tied: both winners split the pot; player 2 also pays rank-2 cost
+ * 1. 1st + 2nd tied: both winners split the pot collected from ranks 3 and 4 half/half
  * 2. 2nd + 3rd tied: 1st is sole winner, tied pair splits their combined cost
  * 3. 3rd + 4th tied: 1st is sole winner, tied pair splits their combined cost
  *
  * Examples with baseBid=2 (no doubling):
  * No tie: Rank 1: +120, Rank 2: -20, Rank 3: -40, Rank 4: -60
- * 1st+2nd tied: Rank 1: +60, Rank 2: +40, Rank 3: -40, Rank 4: -60
+ * 1st+2nd tied: Rank 1: +50, Rank 2: +50, Rank 3: -40, Rank 4: -60
  * 2nd+3rd tied: Rank 1: +240 (bonus), Rank 2: -60, Rank 3: -60, Rank 4: -120 (bonus)
  * 3rd+4th tied: Rank 1: +240 (bonus), Rank 2: -40, Rank 3: -100, Rank 4: -100
  */
@@ -105,12 +105,8 @@ export function calculateFinalSettlement(
   let lines: SettlementLine[] = [];
 
   if (tieScenario === "FIRST_SECOND") {
-    // 1st and 2nd are tied, both are winners sharing the pot
-    // Calculate what ranks 2, 3 and 4 pay (with doubling rules applied to 3 and 4)
-    
-    // Player 2's "rank 2 cost" (they're also rank 2, so they pay this conceptually)
-    let rank2CostTenths = (PAY_MULTIPLIERS[1] ?? 0) * baseBid * 10;
-    if (winnerBonusApplied) rank2CostTenths *= 2;
+    // 1st and 2nd are tied, both are 1st-place winners sharing the pot equally
+    // Calculate what ranks 3 and 4 pay (with doubling rules applied if negative score or winner bonus)
     
     let rank3CostTenths = (PAY_MULTIPLIERS[2] ?? 0) * baseBid * 10;
     if (rankings[2].totalScoreTenths < 0) rank3CostTenths *= 2;
@@ -120,15 +116,10 @@ export function calculateFinalSettlement(
     if (rankings[3].totalScoreTenths < 0) rank4CostTenths *= 2;
     if (winnerBonusApplied) rank4CostTenths *= 2;
     
-    // Total pot is all three rank costs
-    const totalPotTenths = rank2CostTenths + rank3CostTenths + rank4CostTenths;
-    const halfPotTenths = Math.floor(totalPotTenths / 2);
-    
-    // Player 1: collects half the pot
-    const player1Collection = halfPotTenths;
-    
-    // Player 2: collects half the pot minus their rank 2 cost
-    const player2Collection = halfPotTenths - rank2CostTenths;
+    // Total pot collected from ranks 3 and 4
+    const totalPotTenths = rank3CostTenths + rank4CostTenths;
+    const player1Collection = Math.floor(totalPotTenths / 2);
+    const player2Collection = totalPotTenths - player1Collection;
 
     lines = [
       {

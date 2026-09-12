@@ -224,11 +224,11 @@ describe("Settlement Engine", () => {
 
       const settlement = calculateFinalSettlement(rankings, 2);
 
-      // Both winners split the pot: 1st gets 3*2=60, 2nd gets (3-1)*2=40
+      // Both winners split the pot collected from ranks 3 and 4 (40 + 60 = 100) half/half: 50 each
       expect(settlement.lines[0].rank).toBe("TIE");
-      expect(settlement.lines[0].settlementAmountTenths).toBe(60);
+      expect(settlement.lines[0].settlementAmountTenths).toBe(50);
       expect(settlement.lines[1].rank).toBe("TIE");
-      expect(settlement.lines[1].settlementAmountTenths).toBe(40);
+      expect(settlement.lines[1].settlementAmountTenths).toBe(50);
       // 3rd pays: 2 * 2 = 4 = 40 tenths
       expect(settlement.lines[2].rank).toBe(3);
       expect(settlement.lines[2].settlementAmountTenths).toBe(-40);
@@ -308,11 +308,10 @@ describe("Settlement Engine", () => {
 
       const settlement = calculateFinalSettlement(rankings, 2);
 
-      // Total pot: (1*2 + 2*2 + 3*2*2) = (20 + 40 + 120) = 180 tenths
-      // Player 1: 180/2 = 90 tenths
-      // Player 2: 180/2 - 20 = 70 tenths
-      expect(settlement.lines[0].settlementAmountTenths).toBe(90);
-      expect(settlement.lines[1].settlementAmountTenths).toBe(70);
+      // Total pot: (2*2*10 + 3*2*2*10) = (40 + 120) = 160 tenths
+      // Both Player 1 and Player 2 split 160/2 = 80 tenths
+      expect(settlement.lines[0].settlementAmountTenths).toBe(80);
+      expect(settlement.lines[1].settlementAmountTenths).toBe(80);
       // 3rd: 2 * 2 = 40 tenths
       expect(settlement.lines[2].settlementAmountTenths).toBe(-40);
       // 4th (below zero): 3 * 2 * 2 = 120 tenths
@@ -357,11 +356,10 @@ describe("Settlement Engine", () => {
       const settlement = calculateFinalSettlement(rankings, 2);
 
       expect(settlement.winnerBonusApplied).toBe(true);
-      // Total pot: (1*2 + 2*2 + 3*2)*2 (bonus) + extra for 4th negative = (20 + 40)*2 + 240 = 120 + 240 = 360
-      // Player 1: 360/2 = 180
-      // Player 2: 360/2 - 40 = 140
-      expect(settlement.lines[0].settlementAmountTenths).toBe(180);
-      expect(settlement.lines[1].settlementAmountTenths).toBe(140);
+      // Total pot: 3rd (2*2*2 = 80) + 4th (3*2*2*2 = 240) = 320 tenths
+      // Both Player 1 and Player 2 split 320/2 = 160 tenths
+      expect(settlement.lines[0].settlementAmountTenths).toBe(160);
+      expect(settlement.lines[1].settlementAmountTenths).toBe(160);
       // 3rd: (2*2)*2 (bonus) = 80 tenths
       expect(settlement.lines[2].settlementAmountTenths).toBe(-80);
       // 4th (below zero + winner bonus): (3*2)*2*2 = 240 tenths

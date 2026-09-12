@@ -167,15 +167,22 @@ export default function GameResultsPage() {
         <p className="results-base-bid-bar mt-4"><span>Base bid</span><span className="score-number">{currentGame.rules.baseBid}</span></p>
 
         <section className="panel mt-6 overflow-hidden p-0">
-          <div className="grid grid-cols-[3rem_minmax(0,1fr)_5rem_5rem] gap-2 border-b border-[var(--border)] bg-[var(--surface-tint)] px-5 py-3 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+          <div className="grid grid-cols-[4rem_minmax(0,1fr)_5rem_5rem] gap-2 border-b border-[var(--border)] bg-[var(--surface-tint)] px-5 py-3 text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
             <span>Rank</span><span>Player</span><span className="text-right">Score</span><span className="text-right">Settle</span>
           </div>
           {rankings.map((ranking, index) => {
             const settlementLine = settlement?.lines.find((line) => line.playerId === ranking.playerId);
-            const medal = ["🥇", "🥈", "🥉", "4️⃣"][index] ?? "";
+            const isTied = settlementLine?.rank === "TIE" || ranking.isTied;
+            const displayRank = isTied ? "TIE" : ranking.rank;
+
+            let medal = ["🥇", "🥈", "🥉", "4️⃣"][index] ?? "";
+            if (tieScenario === "FIRST_SECOND" && index === 1) medal = "🥇";
+            if (tieScenario === "SECOND_THIRD" && index === 2) medal = "🥈";
+            if (tieScenario === "THIRD_FOURTH" && index === 3) medal = "🥉";
+
             return (
-              <div key={ranking.playerId} className={`grid grid-cols-[3rem_minmax(0,1fr)_5rem_5rem] items-center gap-2 border-b border-[var(--border)] px-5 py-4 last:border-b-0 ${typeof ranking.rank === "number" ? `rank-${ranking.rank}` : ""}`}>
-                <span className="flex items-center gap-1 font-bold text-[var(--gold)]"><span aria-hidden="true">{medal}</span>{ranking.rank}</span>
+              <div key={ranking.playerId} className={`grid grid-cols-[4rem_minmax(0,1fr)_5rem_5rem] items-center gap-2 border-b border-[var(--border)] px-5 py-4 last:border-b-0 ${typeof ranking.rank === "number" ? `rank-${ranking.rank}` : ""}`}>
+                <span className="flex items-center gap-1 font-bold text-[var(--gold)]"><span aria-hidden="true">{medal}</span>{displayRank}</span>
                 <span className="min-w-0"><span className="block truncate font-semibold">{ranking.playerName}</span>{settlementLine?.doubledForNegativeScore && <span className="text-xs font-semibold text-[var(--danger)]">Doubled: below zero</span>}</span>
                 <span className="score-number text-right">{formatScore(ranking.totalScoreTenths)}</span>
                 <span className={`score-number text-right font-bold ${settlementLine && settlementLine.settlementAmountTenths < 0 ? "text-[var(--danger)]" : "text-[var(--success)]"}`}>{settlementLine ? formatScore(settlementLine.settlementAmountTenths) : "-"}</span>
