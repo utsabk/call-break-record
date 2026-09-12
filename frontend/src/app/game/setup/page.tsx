@@ -25,6 +25,7 @@ export default function GameSetupPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [baseBidError, setBaseBidError] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const hasAllPlayerNames = names.every((name) => name.trim().length > 0);
 
   const updateName = (index: number, value: string) => {
     setNameError(null);
@@ -87,7 +88,7 @@ export default function GameSetupPage() {
           </div>
           <label className="block"><span className="block text-sm font-bold uppercase tracking-wide text-[var(--muted)]">Base bid</span><input className="input-base mt-3" type="number" inputMode="numeric" min="1" step="1" value={baseBid} aria-invalid={Boolean(baseBidError)} onChange={(event) => { setBaseBid(event.target.value); setBaseBidError(null); setSubmissionError(null); }} />{baseBidError && <span role="alert" className="mt-2 block text-sm text-[var(--danger)]">{baseBidError}</span>}</label>
           {(submissionError || storeError) && <p role="alert" className="status-alert">{submissionError || storeError}</p>}
-          <button className="btn-primary min-h-14 w-full" type="submit" disabled={isLoading}>{isLoading ? "Creating game..." : <>Start game <ArrowRight size={18} /></>}</button>
+          <button className={`btn-primary setup-submit-button min-h-14 w-full ${hasAllPlayerNames ? "action-button-ready" : ""}`} type="submit" disabled={isLoading}>{isLoading ? "Creating game..." : <>Start game <ArrowRight size={18} /></>}</button>
           <span className="setup-heart-card-corner setup-heart-card-corner-bottom" aria-hidden="true"><strong>A</strong><small>♥</small></span>
         </form>
       </div>

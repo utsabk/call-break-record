@@ -388,13 +388,46 @@ body::before {
 
 .home-actions .home-create-button {
   border-color: #d0a84a;
-  background: var(--card-ivory);
+  background: #d8eadb;
   color: var(--card-felt);
-  box-shadow: 0 2px 0 #d0a84a, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
+  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
 }
 
 .home-actions .home-create-button:hover {
-  background: #fff7df;
+  background: #e5f1e7;
+}
+
+.round-action-button:not(:disabled) {
+  border-color: #d0a84a;
+  background: #d8eadb;
+  color: var(--card-felt);
+  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
+}
+
+.round-action-button:not(:disabled):hover {
+  background: #e5f1e7;
+}
+
+.setup-submit-button.is-ready {
+  border-color: #d0a84a;
+  background: #d8eadb;
+  color: var(--card-felt);
+  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
+}
+
+.setup-submit-button.is-ready:hover {
+  background: #e5f1e7;
+}
+
+.action-button-ready:not(:disabled) {
+  border-color: #d0a84a;
+  background: #d8eadb;
+  color: var(--card-felt);
+  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
+}
+
+.action-button-ready:not(:disabled):hover {
+  background: #e5f1e7;
 }
 
 .home-shell #history > h2 {
@@ -731,6 +764,17 @@ body::before {
   border-color: var(--primary-border);
   background: var(--primary);
   box-shadow: var(--shadow-action);
+}
+
+.setup-heart-card .action-button-ready:not(:disabled) {
+  border-color: #d0a84a;
+  background: #d8eadb;
+  color: var(--card-felt);
+  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
+}
+
+.setup-heart-card .action-button-ready:not(:disabled):hover {
+  background: #e5f1e7;
 }
 
 .results-base-bid-bar {

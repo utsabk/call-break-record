@@ -542,7 +542,7 @@ export default function LiveGamePage() {
 
             {field === "bid" && (
               <button
-                className="btn-primary min-h-14 w-full"
+                className="btn-primary round-action-button action-button-ready min-h-14 w-full"
                 type="button"
                 disabled={!allCallsIn || busyKey !== null}
                 onPointerDown={(event) => event.preventDefault()}
@@ -559,7 +559,7 @@ export default function LiveGamePage() {
                     The tricks add up to {trickTotal}, but a round has exactly 13. {trickTotal > 13 ? `Remove ${trickTotal - 13}` : `Add ${13 - trickTotal} more`} and try again.
                   </p>
                 )}
-                <button className="btn-primary min-h-14 w-full" type="button" disabled={!canScoreRound || busyKey !== null} onPointerDown={(event) => event.preventDefault()} onClick={() => void scoreRound()}>
+                <button className="btn-primary round-action-button action-button-ready min-h-14 w-full" type="button" disabled={!canScoreRound || busyKey !== null} onPointerDown={(event) => event.preventDefault()} onClick={() => void scoreRound()}>
                   {busyKey === "score" ? "Scoring…" : "Score round"}
                 </button>
               </>
