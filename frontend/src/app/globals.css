@@ -576,20 +576,12 @@ body::before {
   letter-spacing: 0.02em;
 }
 
-.lobby-code-card {
-  min-height: 22rem;
-}
-
-.lobby-code-card-corner {
-  color: var(--card-heart);
-}
-
 .lobby-code-card-mark {
   color: color-mix(in srgb, var(--card-heart) 12%, transparent);
 }
 
 .lobby-code-card-copy {
-  min-height: 19.5rem;
+  min-height: auto;
   padding-inline: 2rem;
 }
 
@@ -619,39 +611,16 @@ body::before {
 }
 
 .lobby-players {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
+  border-top: 1px solid var(--tint-border);
+  padding-top: 1rem;
 }
 
-.lobby-player {
-  display: inline-flex;
-  min-width: 0;
-  max-width: 100%;
-  align-items: center;
-  gap: 0.45rem;
-  border: 1px solid var(--tint-border);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-elevated) 88%, var(--surface-tint));
+.lobby-players-list {
+  margin-top: 0;
   color: var(--foreground);
-  padding: 0.35rem 0.75rem 0.35rem 0.4rem;
-  font-size: 0.8rem;
-  font-weight: 800;
-  box-shadow: var(--shadow-sm);
-}
-
-.lobby-player-seat {
-  display: inline-flex;
-  height: 1.4rem;
-  width: 1.4rem;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--surface-warm);
-  color: var(--gold);
-  font-size: 0.7rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.5;
 }
 
 .new-game-card {
