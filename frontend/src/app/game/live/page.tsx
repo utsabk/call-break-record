@@ -231,7 +231,7 @@ export default function LiveGamePage() {
     const key = draftKey(player.id, entryField);
     return (
       <input
-        className="input-base score-number w-20 text-center text-lg font-semibold"
+        className="input-base score-number w-24 text-center text-lg font-semibold"
         type="number"
         inputMode="numeric"
         min={entryField === "bid" ? 1 : 0}
@@ -522,9 +522,8 @@ export default function LiveGamePage() {
                   data-suit={suit}
                 >
                   <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
-                  {isHost && (
+                  {isHost && (!isClaimed && !isOwnRow || value !== undefined) && (
                     <div className="player-status-row">
-                      <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
                       {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
                       {value !== undefined && <span className="player-status-text">{source === "HOST" ? "Scorer" : "Player"}</span>}
                     </div>
@@ -542,12 +541,7 @@ export default function LiveGamePage() {
                     </span>
 
                     {isHost ? (
-                      <span className="entry-control-group current-entry-control">
-                        <label className="entry-control-label">
-                          <span>{field === "bid" ? "Call" : "Tricks"}</span>
-                          {entryInput(player, field)}
-                        </label>
-                      </span>
+                      <span className="current-entry-control">{entryInput(player, field)}</span>
                     ) : canEdit ? (
                       entryInput(player, field)
                     ) : (

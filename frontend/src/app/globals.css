@@ -1116,16 +1116,6 @@ body::before {
   letter-spacing: 0.02em;
 }
 
-.player-status-row .player-state-badge[data-state="done"] {
-  background: none;
-  color: var(--success);
-}
-
-.player-status-row .player-state-badge[data-state="waiting"] {
-  background: none;
-  color: var(--warning);
-}
-
 .player-status-text {
   font-size: 0.58rem;
   font-weight: 700;
@@ -1154,7 +1144,7 @@ body::before {
 }
 
 .compact-player-row-mini .player-suit-watermark {
-  opacity: 0.16;
+  opacity: 0.08;
 }
 
 .compact-player-row-active {
@@ -1170,7 +1160,7 @@ body::before {
 
 .compact-player-row-active[data-phase="bid"] .player-suit-watermark {
   color: var(--primary);
-  opacity: 0.2;
+  opacity: 0.12;
 }
 
 .compact-player-row-active[data-phase="tricksWon"] {
@@ -1181,7 +1171,7 @@ body::before {
 
 .compact-player-row-active[data-phase="tricksWon"] .player-suit-watermark {
   color: var(--gold);
-  opacity: 0.2;
+  opacity: 0.12;
 }
 
 .player-suit-watermark {
@@ -1191,7 +1181,7 @@ body::before {
   z-index: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  opacity: 0.3;
+  opacity: 0.14;
 }
 
 .player-suit-watermark[data-suit="spade"],
@@ -1276,35 +1266,8 @@ body::before {
   white-space: nowrap;
 }
 
-.player-state-badge[data-state="done"] {
-  background: color-mix(in srgb, var(--success) 14%, var(--surface-elevated));
-  color: var(--success);
-}
-
-.player-state-badge[data-state="waiting"] {
-  background: var(--surface-warm);
-  color: var(--warning);
-}
-
-.entry-control-group {
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 0.4rem;
-}
-
 .current-entry-control .input-base {
-  width: 5.5rem;
-}
-
-.entry-control-label {
-  display: grid;
-  gap: 0.25rem;
-  justify-items: center;
-  color: var(--muted);
-  font-size: 0.67rem;
-  font-weight: 800;
-  text-transform: uppercase;
+  width: 6rem;
 }
 
 .row-action-popover {
