@@ -504,7 +504,10 @@ export default function LiveGamePage() {
                 return (
                   <div key={player.id} className="compact-player-row compact-player-row-mini" data-suit={suit}>
                     <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={40} />
-                    <span className="min-w-0 truncate font-display text-base font-bold">{player.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate font-display text-base font-bold">{player.name}</span>
+                      {field === "tricksWon" && entry?.bid !== undefined && <span className="block text-xs text-[var(--muted)]">Called {entry.bid}</span>}
+                    </span>
                     <span className="score-number text-base font-bold">{value ?? "—"}</span>
                   </div>
                 );
@@ -535,7 +538,7 @@ export default function LiveGamePage() {
                         {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
                       </span>
                     )}
-                    {field === "tricksWon" && !isHost && entry?.bid !== undefined && (
+                    {field === "tricksWon" && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
                     )}
                     {entry?.punished && <span className="mt-0.5 block text-xs font-semibold text-[var(--danger)]">Disqualified</span>}
