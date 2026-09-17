@@ -317,23 +317,27 @@ body::before {
   color: #b22f38;
 }
 
-.players-card {
+.field-card {
   position: relative;
   overflow: hidden;
+  margin: 0;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: linear-gradient(135deg, var(--surface-elevated), color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-tint)));
-  padding: 1.25rem;
+  padding: 1rem 1.1rem 1.1rem;
 }
 
-.players-card fieldset {
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-width: 0;
+.field-card-legend {
+  padding: 0 0.5rem;
+  margin-left: 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
-.players-card-watermark {
+.field-card-watermark {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -344,7 +348,7 @@ body::before {
   pointer-events: none;
 }
 
-.players-card > *:not(.players-card-watermark) {
+.field-card > *:not(.field-card-watermark) {
   position: relative;
   z-index: 1;
 }
@@ -405,17 +409,6 @@ body::before {
 }
 
 .round-action-button:not(:disabled):hover {
-  background: #e5f1e7;
-}
-
-.setup-submit-button.is-ready {
-  border-color: #d0a84a;
-  background: #d8eadb;
-  color: var(--card-felt);
-  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
-}
-
-.setup-submit-button.is-ready:hover {
   background: #e5f1e7;
 }
 
@@ -661,109 +654,26 @@ body::before {
   font-size: 0.7rem;
 }
 
-.setup-heart-card {
-  position: relative;
-  overflow: hidden;
-  border-color: color-mix(in srgb, var(--gold) 55%, var(--tint-border));
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--surface-elevated) 92%, transparent), color-mix(in srgb, var(--surface-tint) 85%, transparent)),
-    var(--surface-elevated);
-  color: var(--foreground);
-  padding: 3.5rem 1.25rem 4.75rem;
-  box-shadow: var(--shadow-md);
+.new-game-card {
+  padding: 1.25rem;
 }
 
-.setup-heart-card::before {
-  position: absolute;
-  inset: 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--tint-border) 85%, transparent);
-  border-radius: 0.5rem;
-  content: "";
-  pointer-events: none;
+.new-game-card-copy {
+  min-height: auto;
+  padding: 0 0.5rem;
 }
 
-.setup-heart-card-corner {
-  position: absolute;
-  top: 1rem;
-  left: 1.1rem;
-  z-index: 2;
-  display: grid;
-  justify-items: center;
-  color: #8f292e;
-  font-family: var(--font-display), serif;
-  line-height: 0.8;
+.new-game-card-copy p {
+  white-space: normal;
 }
 
-.setup-heart-card-corner strong {
-  font-size: 1.45rem;
-}
-
-.setup-heart-card-corner small {
-  margin-top: 0.15rem;
-  font-family: var(--font-sans), sans-serif;
-  font-size: 1.35rem;
-  font-weight: 900;
-  line-height: 0.8;
-}
-
-.setup-heart-card-corner-bottom {
-  top: auto;
-  right: 1.1rem;
-  bottom: 1rem;
-  left: auto;
-  transform: rotate(180deg);
-}
-
-.setup-heart-card-mark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 0;
-  width: 17rem;
-  height: 17rem;
-  transform: translate(-50%, -50%);
-  color: rgba(143, 41, 46, 0.1);
-}
-
-.setup-heart-card > *:not(.setup-heart-card-mark):not(.setup-heart-card-corner) {
-  position: relative;
-  z-index: 1;
-}
-
-.setup-heart-card .players-card {
+.new-game-card .field-card {
   border-color: var(--tint-border);
   background: color-mix(in srgb, var(--surface-tint) 82%, var(--surface-elevated));
 }
 
-.setup-shell .table-nav {
-  color: rgba(255, 250, 240, 0.82);
-}
-
-.setup-heart-card,
-.setup-heart-card legend,
-.setup-heart-card label {
-  color: var(--foreground);
-}
-
-.setup-heart-card .input-base {
-  border-color: var(--border);
-  background: var(--surface-elevated);
-  color: var(--foreground);
-}
-
-.setup-heart-card .input-base:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px var(--focus-ring);
-}
-
-.setup-heart-card .players-card-watermark {
+.new-game-card .field-card-watermark {
   color: var(--card-heart);
-}
-
-.setup-heart-card .btn-primary {
-  border-color: var(--primary-border);
-  background: var(--primary);
-  box-shadow: var(--shadow-action);
 }
 
 .join-code-card {
@@ -785,17 +695,6 @@ body::before {
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 600;
-}
-
-.setup-heart-card .action-button-ready:not(:disabled) {
-  border-color: #d0a84a;
-  background: #d8eadb;
-  color: var(--card-felt);
-  box-shadow: 0 2px 0 #9fc4a5, 0 14px 28px rgba(3, 25, 14, 0.28), 0 0 0 3px rgba(208, 168, 74, 0.16);
-}
-
-.setup-heart-card .action-button-ready:not(:disabled):hover {
-  background: #e5f1e7;
 }
 
 .results-base-bid-bar {
