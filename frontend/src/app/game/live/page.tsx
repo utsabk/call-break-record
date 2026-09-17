@@ -516,47 +516,44 @@ export default function LiveGamePage() {
               return (
                 <div
                   key={player.id}
-                  className={`compact-player-row ${isOwnRow ? "compact-player-row-active" : ""}`}
+                  className={`compact-player-row compact-player-row-detailed ${isOwnRow ? "compact-player-row-active" : ""}`}
                   data-phase={isOwnRow ? field : undefined}
                   data-state={value === undefined ? "waiting" : "done"}
                   data-suit={suit}
                 >
-                  <SuitIcon className="player-suit-corner player-suit-corner-top" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
-                  <SuitIcon className="player-suit-corner player-suit-corner-bottom" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
                   <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
-                  <span className="min-w-0">
-                    {isHost && (
-                      <span className="mb-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-                        <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
-                        {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
-                        {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
-                      </span>
-                    )}
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate font-display text-lg font-bold">
-                      {player.name}
-                      </span>
-                      {isOwnRow && <span className="ml-2 text-xs font-bold uppercase text-[var(--primary)]">You</span>}
-                    </span>
-                    {field === "tricksWon" && entry?.bid !== undefined && (
-                      <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
-                    )}
-                    {entry?.punished && <span className="mt-0.5 block text-xs font-semibold text-[var(--danger)]">Disqualified</span>}
-                  </span>
-
-                  {isHost ? (
-                    <span className="entry-control-group current-entry-control">
-                      <label className="entry-control-label">
-                        <span>{field === "bid" ? "Call" : "Tricks"}</span>
-                        {entryInput(player, field)}
-                      </label>
-                    </span>
-                  ) : canEdit ? (
-                    entryInput(player, field)
-                  ) : (
-                    <span className="score-number w-20 text-center text-lg font-bold">{value ?? "—"}</span>
+                  {isHost && (
+                    <div className="player-status-row">
+                      <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
+                      {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
+                      {value !== undefined && <span className="player-status-text">{source === "HOST" ? "Scorer" : "Player"}</span>}
+                    </div>
                   )}
+                  <div className="player-main-row">
+                    <span className="min-w-0">
+                      <span className="player-name-line">
+                        <span className="truncate font-display text-lg font-bold">{player.name}</span>
+                        {isOwnRow && <span className="ml-1 text-xs font-bold uppercase text-[var(--primary)]">You</span>}
+                      </span>
+                      {field === "tricksWon" && entry?.bid !== undefined && (
+                        <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
+                      )}
+                      {entry?.punished && <span className="mt-0.5 block text-xs font-semibold text-[var(--danger)]">Disqualified</span>}
+                    </span>
 
+                    {isHost ? (
+                      <span className="entry-control-group current-entry-control">
+                        <label className="entry-control-label">
+                          <span>{field === "bid" ? "Call" : "Tricks"}</span>
+                          {entryInput(player, field)}
+                        </label>
+                      </span>
+                    ) : canEdit ? (
+                      entryInput(player, field)
+                    ) : (
+                      <span className="score-number w-20 text-center text-lg font-bold">{value ?? "—"}</span>
+                    )}
+                  </div>
                 </div>
               );
             })}

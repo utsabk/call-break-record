@@ -1087,6 +1087,66 @@ body::before {
   overflow: hidden;
 }
 
+.compact-player-row-detailed {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  padding: 0.3rem 0.75rem 0.5rem;
+}
+
+.player-status-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.player-status-row > *:not(:first-child) {
+  border-left: 1px solid var(--border);
+  padding-left: 0.5rem;
+}
+
+.player-status-row .player-state-badge {
+  min-height: auto;
+  background: none;
+  padding: 0;
+  font-size: 0.58rem;
+  letter-spacing: 0.02em;
+}
+
+.player-status-row .player-state-badge[data-state="done"] {
+  background: none;
+  color: var(--success);
+}
+
+.player-status-row .player-state-badge[data-state="waiting"] {
+  background: none;
+  color: var(--warning);
+}
+
+.player-status-text {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.player-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.player-name-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+}
+
 .compact-player-row-mini {
   grid-template-columns: minmax(0, 1fr) auto;
   padding: 0.6rem 0.85rem;
