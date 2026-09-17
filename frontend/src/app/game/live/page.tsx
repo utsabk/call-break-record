@@ -195,7 +195,8 @@ export default function LiveGamePage() {
   const isViewingHistory = selectedRound.roundNumber !== liveRound.roundNumber;
   const phase = selectedRound.phase;
   const hasEnteredTricks = game.players.some((player) => entryOf(liveRound, player.id)?.tricksWon !== undefined);
-  const isReviewingCalls = phase === "TRICKS" && tricksEntryRoundNumber !== liveRound.roundNumber && !hasEnteredTricks;
+  // Watchers can't advance the round themselves, so they should always see the actual phase, not a held review screen.
+  const isReviewingCalls = !isWatcher && phase === "TRICKS" && tricksEntryRoundNumber !== liveRound.roundNumber && !hasEnteredTricks;
   const field: EntryField = phase === "BIDDING" || isReviewingCalls ? "bid" : "tricksWon";
 
   const revealedRounds = game.rounds.filter((round) => round.revealed);
@@ -566,7 +567,7 @@ export default function LiveGamePage() {
 
             {error && <p role="alert" className="status-alert">{error}</p>}
 
-            {field === "bid" && (
+            {!isWatcher && field === "bid" && (
               <button
                 className="btn-primary round-action-button action-button-ready min-h-14 w-full"
                 type="button"
@@ -591,10 +592,8 @@ export default function LiveGamePage() {
               </>
             )}
 
-            {!isHost && (
-              <p className="text-sm text-[var(--muted)]">
-                {isPlayer ? "The scorer can correct any entry before the round is scored." : "Only players and the scorer can enter values."}
-              </p>
+            {isPlayer && (
+              <p className="text-sm text-[var(--muted)]">The scorer can correct any entry before the round is scored.</p>
             )}
           </section>
         )}
