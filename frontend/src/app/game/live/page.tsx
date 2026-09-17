@@ -525,19 +525,19 @@ export default function LiveGamePage() {
                   <SuitIcon className="player-suit-corner player-suit-corner-bottom" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
                   <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
                   <span className="min-w-0">
+                    {isHost && (
+                      <span className="mb-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                        <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
+                        {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
+                        {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
+                      </span>
+                    )}
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate font-display text-lg font-bold">
                       {player.name}
                       </span>
                       {isOwnRow && <span className="ml-2 text-xs font-bold uppercase text-[var(--primary)]">You</span>}
                     </span>
-                    {isHost && (
-                      <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-                        <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
-                        {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
-                        {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
-                      </span>
-                    )}
                     {field === "tricksWon" && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
                     )}
