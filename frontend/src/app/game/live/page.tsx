@@ -522,9 +522,9 @@ export default function LiveGamePage() {
                   data-suit={suit}
                 >
                   <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
-                  {isHost && (!isClaimed && !isOwnRow || value !== undefined) && (
+                  {isHost && (isClaimed && !isOwnRow || value !== undefined) && (
                     <div className="player-status-row">
-                      {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
+                      {isClaimed && !isOwnRow && <span className="player-status-text player-status-joined">Joined</span>}
                       {value !== undefined && <span className="player-status-text">{source === "HOST" ? "Scorer" : "Player"}</span>}
                     </div>
                   )}

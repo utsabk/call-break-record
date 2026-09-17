@@ -1108,19 +1108,15 @@ body::before {
   padding-left: 0.5rem;
 }
 
-.player-status-row .player-state-badge {
-  min-height: auto;
-  background: none;
-  padding: 0;
-  font-size: 0.58rem;
-  letter-spacing: 0.02em;
-}
-
 .player-status-text {
   font-size: 0.58rem;
   font-weight: 700;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.player-status-joined {
+  color: var(--rank-2-edge);
 }
 
 .player-main-row {
@@ -1251,19 +1247,6 @@ body::before {
   border-radius: 0.65rem;
   background: color-mix(in srgb, var(--surface-tint) 58%, transparent);
   padding: 0.75rem;
-}
-
-.player-state-badge {
-  display: inline-flex;
-  min-height: 1.65rem;
-  align-items: center;
-  border-radius: 999px;
-  background: var(--surface-tint);
-  color: var(--muted);
-  padding: 0.22rem 0.55rem;
-  font-size: 0.7rem;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .current-entry-control .input-base {
