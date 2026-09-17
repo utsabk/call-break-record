@@ -927,6 +927,47 @@ body::before {
   padding-block: 0.9rem;
 }
 
+.round-summary-hint {
+  margin-top: 0.3rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.round-summary[data-phase="bid"] {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--tint-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, var(--surface-elevated)), var(--surface-elevated)),
+    var(--surface-elevated);
+}
+
+.round-summary[data-phase="bid"] h1 {
+  color: var(--primary);
+}
+
+.round-summary[data-phase="bid"] .round-status-badge {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--tint-border));
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface-tint));
+  color: var(--primary);
+}
+
+.round-summary[data-phase="tricksWon"] {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--tint-border));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--gold) 14%, var(--surface-elevated)), var(--surface-elevated)),
+    var(--surface-elevated);
+}
+
+.round-summary[data-phase="tricksWon"] h1 {
+  color: color-mix(in srgb, var(--gold) 75%, var(--foreground));
+}
+
+.round-summary[data-phase="tricksWon"] .round-status-badge {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--tint-border));
+  background: color-mix(in srgb, var(--gold) 18%, var(--surface-tint));
+  color: color-mix(in srgb, var(--gold) 65%, var(--foreground));
+}
+
 .kicker-pill {
   display: inline-flex;
   min-height: 2rem;
@@ -1044,6 +1085,43 @@ body::before {
   padding: 1.35rem 0.65rem;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+}
+
+.compact-player-row-mini {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0.6rem 0.85rem;
+  gap: 0.5rem;
+}
+
+.compact-player-row-mini .player-suit-watermark {
+  opacity: 0.16;
+}
+
+.compact-player-row-active {
+  border-width: 2px;
+  box-shadow: var(--shadow-md);
+}
+
+.compact-player-row-active[data-phase="bid"] {
+  border-color: var(--primary);
+  border-left-color: var(--primary);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 16%, var(--surface-elevated)), var(--surface-elevated));
+}
+
+.compact-player-row-active[data-phase="bid"] .player-suit-watermark {
+  color: var(--primary);
+  opacity: 0.2;
+}
+
+.compact-player-row-active[data-phase="tricksWon"] {
+  border-color: var(--gold);
+  border-left-color: var(--gold);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--gold) 18%, var(--surface-elevated)), var(--surface-elevated));
+}
+
+.compact-player-row-active[data-phase="tricksWon"] .player-suit-watermark {
+  color: var(--gold);
+  opacity: 0.2;
 }
 
 .player-suit-watermark {
@@ -1271,9 +1349,8 @@ body::before {
 .score-table tbody tr.rank-3 > * { background: var(--rank-3-bg); }
 .score-table tbody tr.rank-4 > * { background: var(--rank-4-bg); }
 
-.score-table tbody tr[data-current="true"] td,
-.score-table tbody tr[data-current="true"] th {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 28%, transparent);
+.score-table tbody tr[data-current="true"] {
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px color-mix(in srgb, var(--primary) 28%, transparent);
 }
 
 .score-table tbody tr > *:first-child {

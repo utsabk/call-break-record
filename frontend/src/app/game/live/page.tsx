@@ -350,6 +350,8 @@ export default function LiveGamePage() {
   };
 
   const roleLabel = isHost ? "Scoring" : isPlayer ? "Playing" : "Watching";
+  // Players always see their own entry card first; the host keeps the fixed seat order for scoring.
+  const displayedPlayers = isHost ? game.players : [...game.players].sort((a, b) => Number(b.id === ownPlayerId) - Number(a.id === ownPlayerId));
 
   return (
     <main className="app-shell">
@@ -429,12 +431,17 @@ export default function LiveGamePage() {
           </section>
         )}
 
-        <div className="hero-panel round-summary mt-5">
+        <div className="hero-panel round-summary mt-5" data-phase={selectedRound.revealed ? "complete" : field}>
           <div className="round-card-header">
-            <h1 className="relative font-display text-3xl font-black sm:text-4xl">
-              {selectedRound.revealed ? "Round complete" : field === "bid" ? "Calls" : "Tricks"}
-            </h1>
-            <span className="round-status-badge"><Spade size={13} fill="currentColor" /> Round {selectedRound.roundNumber}/{game.rules.rounds}</span>
+            <div>
+              <h1 className="relative font-display text-3xl font-black sm:text-4xl">
+                {selectedRound.revealed ? "Round complete" : field === "bid" ? "Calls" : "Tricks"}
+              </h1>
+              {!selectedRound.revealed && (
+                <p className="round-summary-hint">{field === "bid" ? "Enter how many tricks each player is calling" : "Enter how many tricks each player actually won"}</p>
+              )}
+            </div>
+            <span className="round-status-badge">{field === "bid" ? <Spade size={13} fill="currentColor" /> : <Trophy size={13} />} Round {selectedRound.roundNumber}/{game.rules.rounds}</span>
           </div>
         </div>
 
@@ -482,17 +489,34 @@ export default function LiveGamePage() {
               </div>
             )}
 
-            {game.players.map((player, index) => {
+            {displayedPlayers.map((player) => {
               const entry = entryOf(liveRound, player.id);
               const value = valueOf(entry, field);
               const source = sourceOf(entry, field);
               const isOwnRow = player.id === ownPlayerId;
               const isClaimed = game.claimedPlayerIds.includes(player.id);
               const canEdit = isOwnRow && value === undefined;
-              const { name: suit, Icon: SuitIcon } = suitOf(index);
+              const { name: suit, Icon: SuitIcon } = suitOf(player.seat);
+
+              // Non-host viewers don't need to know who has or hasn't joined or entered yet.
+              if (!isHost && !isOwnRow) {
+                return (
+                  <div key={player.id} className="compact-player-row compact-player-row-mini" data-suit={suit}>
+                    <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={40} />
+                    <span className="min-w-0 truncate font-display text-base font-bold">{player.name}</span>
+                    <span className="score-number text-base font-bold">{value ?? "—"}</span>
+                  </div>
+                );
+              }
 
               return (
-                <div key={player.id} className="compact-player-row" data-state={value === undefined ? "waiting" : "done"} data-suit={suit}>
+                <div
+                  key={player.id}
+                  className={`compact-player-row ${isOwnRow ? "compact-player-row-active" : ""}`}
+                  data-phase={isOwnRow ? field : undefined}
+                  data-state={value === undefined ? "waiting" : "done"}
+                  data-suit={suit}
+                >
                   <SuitIcon className="player-suit-corner player-suit-corner-top" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
                   <SuitIcon className="player-suit-corner player-suit-corner-bottom" data-suit={suit} aria-hidden="true" fill="currentColor" size={14} />
                   <SuitIcon className="player-suit-watermark" data-suit={suit} aria-hidden="true" fill="currentColor" size={64} />
@@ -503,11 +527,13 @@ export default function LiveGamePage() {
                       </span>
                       {isOwnRow && <span className="ml-2 text-xs font-bold uppercase text-[var(--primary)]">You</span>}
                     </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-                      <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
-                      {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
-                      {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
-                    </span>
+                    {isHost && (
+                      <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                        <span className="player-state-badge" data-state={value === undefined ? "waiting" : "done"}>{value === undefined ? "Pending" : "Entered"}</span>
+                        {!isClaimed && !isOwnRow && <span className="player-state-badge">Not joined</span>}
+                        {value !== undefined && <span className="truncate">{source === "HOST" ? "Scorer" : "Player"}</span>}
+                      </span>
+                    )}
                     {field === "tricksWon" && !isHost && entry?.bid !== undefined && (
                       <span className="mt-0.5 block text-xs text-[var(--muted)]">Called {entry.bid}</span>
                     )}
