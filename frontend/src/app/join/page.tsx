@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { ArrowRight, Check, Club, Eye, Spade, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eye, Spade, Users } from "lucide-react";
 import Link from "next/link";
 import { GameStatus, GameView, GameViewerRole } from "@call-break/shared";
 import { apiGameRepository } from "@/lib/repositories/ApiGameRepository";
@@ -12,6 +12,7 @@ export default function JoinGamePage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hasValidCode = /^[0-9]{4}$/.test(gameCode);
 
   const findGame = async (event: FormEvent) => {
     event.preventDefault();
@@ -46,25 +47,22 @@ export default function JoinGamePage() {
   return (
     <main className="app-shell">
       <div className="app-container max-w-md">
-        <Link className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold" href="/"><Spade size={16} fill="currentColor" /> Home</Link>
+        <Link className="table-nav inline-flex min-h-11 items-center gap-2 text-sm font-semibold" href="/"><ArrowLeft size={18} /> Home</Link>
 
         {!game && (
-          <>
-            <header className="hero-panel mt-8">
-              <span className="hero-card-corner" aria-hidden="true">A ♣</span>
-              <p className="kicker-pill"><Club size={14} fill="currentColor" /> Join game</p>
-              <h1 className="relative mt-5 font-display text-4xl font-black">Enter game code</h1>
-              <p className="relative mt-2 text-sm leading-6 text-[var(--muted)]">Join as your seat or watch the table live.</p>
-            </header>
-            <form className="panel mt-6" onSubmit={findGame}>
-              <label className="block">
-                <span className="sr-only">Game code</span>
-                <input className="input-base score-number text-center text-2xl font-bold tracking-[0.2em]" maxLength={4} inputMode="numeric" autoComplete="off" value={gameCode} onChange={(event) => setGameCode(event.target.value.replace(/\D/g, ""))} />
-              </label>
-              {error && <p className="status-alert mt-3" role="alert">{error}</p>}
-              <button className="btn-primary min-h-14 mt-6 w-full" disabled={loading}>{loading ? "Looking for game..." : <>Continue <ArrowRight size={18} /></>}</button>
-            </form>
-          </>
+          <form className="hero-panel join-code-card mt-8" onSubmit={findGame}>
+            <Spade className="hero-spade-card-mark" aria-hidden="true" fill="currentColor" />
+            <div className="join-code-card-copy">
+              <h1 className="font-display text-3xl font-black">Enter game code</h1>
+              <p>Join as your seat or watch the table live</p>
+            </div>
+            <label className="mt-6 block">
+              <span className="sr-only">Game code</span>
+              <input className="input-base score-number text-center text-2xl font-bold tracking-[0.2em]" maxLength={4} inputMode="numeric" autoComplete="off" value={gameCode} onChange={(event) => setGameCode(event.target.value.replace(/\D/g, ""))} />
+            </label>
+            {error && <p className="status-alert mt-3" role="alert">{error}</p>}
+            <button className={`btn-primary min-h-14 mt-6 w-full ${hasValidCode ? "action-button-ready" : ""}`} disabled={loading}>{loading ? "Looking for game..." : <>Continue <ArrowRight size={18} /></>}</button>
+          </form>
         )}
 
         {game && (() => {

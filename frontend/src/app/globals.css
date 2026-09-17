@@ -766,6 +766,27 @@ body::before {
   box-shadow: var(--shadow-action);
 }
 
+.join-code-card {
+  text-align: center;
+}
+
+.join-code-card > *:not(.hero-spade-card-mark) {
+  position: relative;
+  z-index: 1;
+}
+
+.join-code-card-copy h1 {
+  color: var(--foreground);
+  line-height: 1;
+}
+
+.join-code-card-copy p {
+  margin-top: 0.65rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .setup-heart-card .action-button-ready:not(:disabled) {
   border-color: #d0a84a;
   background: #d8eadb;
